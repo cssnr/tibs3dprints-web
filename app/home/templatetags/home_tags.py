@@ -1,5 +1,6 @@
 import logging
 
+from decouple import config
 from django import template
 from django.conf import settings
 from django.templatetags.static import static
@@ -11,8 +12,8 @@ register = template.Library()
 
 @register.simple_tag(name="get_config")
 def get_config(value):
-    # get django setting value or return none
-    return getattr(settings, value, None)
+    # get django setting value, config value, or empty string
+    return getattr(settings, value, config(value, default=""))
 
 
 @register.simple_tag(name="static_full")
@@ -25,6 +26,6 @@ def static_full(request, path):
 def avatar_url(user):
     # return discord avatar url from user model
     if user.avatar_hash:
-        return f"https://cdn.discordapp.com/avatars/" f"{user.username}/{user.avatar_hash}.png"
+        return f"https://cdn.discordapp.com/avatars/{user.username}/{user.avatar_hash}.png"
     else:
         return static("images/avatar.png")
