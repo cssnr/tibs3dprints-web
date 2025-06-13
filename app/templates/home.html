@@ -8,12 +8,21 @@
 {% block body %}
 
   <h1>Tibs3DPrints Web</h1>
-  <p>Server for the client application. For more information please visit one of the following links:</p>
-  <ul>
-    <li><a href="https://app.tibs3dprints.com/">Website</a></li>
-    <li><a href="https://www.tiktok.com/@tibby216">TikTok</a></li>
-    <li><a href="https://www.youtube.com/@Tibs3DPrints">YouTube</a></li>
-  </ul>
+
+  {% if request.user.is_superuser %}
+    <p>
+      <a class="link-info text-decoration-none" href="{% url 'admin:api_tiktokuser_changelist' %}">
+        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
+      </a>
+    </p>
+  {% else %}
+    <p>Server for the client application. For more information please visit one of the following links:</p>
+    <ul>
+      <li><a href="https://app.tibs3dprints.com/">Website</a></li>
+      <li><a href="https://www.tiktok.com/@tibby216">TikTok</a></li>
+      <li><a href="https://www.youtube.com/@Tibs3DPrints">YouTube</a></li>
+    </ul>
+  {% endif %}
 
   <h2 class="mt-4">Administration</h2>
   {% if not request.user.is_authenticated %}
@@ -22,7 +31,8 @@
         Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
       </a>
     </p>
-  {% else %}
+  {% endif %}
+  {% if request.user.is_superuser %}
     <p>
       Your account, <b>{{ request.user.get_name }}</b>,
       has just been hacked using your ID, <b>{{ request.user.username }}</b>.
@@ -30,11 +40,12 @@
     <p>
       Please enjoy the rest of your day.
     </p>
-    <p>
-      <a class="link-info text-decoration-none" href="{% url 'admin:api_tiktokuser_changelist' %}">
-        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
-      </a>
-    </p>
+    <ul>
+      <li><a href="{% url 'admin:index' %}">Admin Index</a></li>
+      <li><a href="{% url 'admin:api_tiktokuser_changelist' %}">User Management</a></li>
+    </ul>
+  {% else %}
+    <p>Please contact the administrator if you think this is an error.</p>
   {% endif %}
 
 {% endblock %} <!-- body -->

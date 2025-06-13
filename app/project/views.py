@@ -1,7 +1,8 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
+from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
@@ -14,11 +15,12 @@ def health_check(request):
     return HttpResponse("success", status=200)
 
 
-@login_required()
+@user_passes_test(lambda u: u.is_superuser)
 @require_http_methods(["POST"])
 def flush_cache_view(request):
     logger.debug("flush_cache_view")
     # flush_template_cache.delay()
+    cache.delete_pattern("template.cache.*")
     messages.success(request, "Cache flush success.")
     return HttpResponse(status=204)
 

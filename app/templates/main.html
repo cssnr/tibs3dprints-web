@@ -85,14 +85,14 @@
                                 <i class="fa-solid fa-rocket me-2"></i> Admin</a></li>
                         {% endif %}
                         {% if request.user.is_superuser %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-info" href="{% url 'flower' %}" target="_blank">
-                                <i class="fas fa-seedling me-2"></i> Flower <i class="fas fa-external-link-alt ms-1 fa-xs"></i></a></li>
-                            <li><a class="dropdown-item text-info" href="{% url 'redis' %}" target="_blank">
-                                <i class="fa-solid fa-database me-2"></i> Redis <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>
-                            <li><a class="dropdown-item text-info" href="{% url 'phpmyadmin' %}" target="_blank">
-                                <i class="fa-solid fa-server me-2"></i> MySQL <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>
-                            <li><hr class="dropdown-divider"></li>
+{#                            <li><hr class="dropdown-divider"></li>#}
+{#                            <li><a class="dropdown-item text-info" href="{% url 'flower' %}" target="_blank">#}
+{#                                <i class="fas fa-seedling me-2"></i> Flower <i class="fas fa-external-link-alt ms-1 fa-xs"></i></a></li>#}
+{#                            <li><a class="dropdown-item text-info" href="{% url 'redis' %}" target="_blank">#}
+{#                                <i class="fa-solid fa-database me-2"></i> Redis <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>#}
+{#                            <li><a class="dropdown-item text-info" href="{% url 'phpmyadmin' %}" target="_blank">#}
+{#                                <i class="fa-solid fa-server me-2"></i> MySQL <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>#}
+{#                            <li><hr class="dropdown-divider"></li>#}
                             <li><a class="dropdown-item text-warning" role="button" id="flush-cache">
                                 <i class="fa-solid fa-toilet me-2"></i> Flush Cache</a></li>
                         {% endif %}

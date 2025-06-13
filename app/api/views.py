@@ -67,6 +67,8 @@ def auth_view(request):
         log.debug("data: %s", data)
         code = data["code"]
         code_verifier = data["codeVerifier"]
+        if not code or not code_verifier:
+            return JsonResponse({"error": "Invalid Request."}, status=400)
         response = get_access_token(code, code_verifier)
         log.debug("response: %s", response)
         access_token = response.get("access_token")
