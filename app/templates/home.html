@@ -31,21 +31,17 @@
         Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
       </a>
     </p>
-  {% endif %}
-  {% if request.user.is_superuser %}
-    <p>
-      Your account, <b>{{ request.user.get_name }}</b>,
-      has just been hacked using your ID, <b>{{ request.user.username }}</b>.
-    </p>
-    <p>
-      Please enjoy the rest of your day.
-    </p>
-    <ul>
-      <li><a href="{% url 'admin:index' %}">Admin Index</a></li>
-      <li><a href="{% url 'admin:api_tiktokuser_changelist' %}">User Management</a></li>
-    </ul>
   {% else %}
-    <p>Please contact the administrator if you think this is an error.</p>
+    {% if request.user.is_superuser %}
+      <p>Welcome, <b>{{ request.user.get_name }}</b>.</p>
+      <p>From here you can manage your application.</p>
+      <ul>
+        <li><a href="{% url 'admin:index' %}">Admin Index</a></li>
+        <li><a href="{% url 'admin:api_tiktokuser_changelist' %}">User Management</a></li>
+      </ul>
+    {% else %}
+      <p>Please contact the administrator if you think this is an error.</p>
+    {% endif %}
   {% endif %}
 
 {% endblock %} <!-- body -->
