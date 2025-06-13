@@ -7,55 +7,38 @@
 
 {% block body %}
 
-    <h1>Home</h1>
+  <h1>Tibs3DPrints App</h1>
+  <p>Server for the client application. For more inforation please visit one of the following links:</p>
+  <ul>
+    <li><a href="https://app.tibs3dprints.com/">Website</a></li>
+    <li><a href="https://www.tiktok.com/@tibby216">TikTok</a></li>
+    <li><a href="https://www.youtube.com/@Tibs3DPrints">YouTube</a></li>
+  </ul>
 
+  <h2 class="mt-4">Administration</h2>
+  {% if not request.user.is_authenticated %}
     <p>
-        This is your life now! WE ROLLIN!
+      <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info" role="button">
+        Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
+      </a>
+    </p>
+  {% else %}
+    <p>
+      Your account, <b>{{ request.user.get_name }}</b>,
+      has just been hacked using your ID, <b>{{ request.user.username }}</b>.
     </p>
     <p>
-        You don't know my life! That you know of...
+      Please enjoy the rest of your day.
     </p>
-
-    <div class="input-group mb-3">
-        <button class="btn btn-success" type="button" id="send-toast">Send Toast <i
-                class="fa-solid fa-champagne-glasses ms-2"></i></button>
-        <input id="toast-message" type="text" class="form-control" placeholder="Test Toast Message" aria-label="Toast"
-               aria-describedby="send-toast">
-    </div>
-
-    {% if not request.user.is_authenticated %}
-        <p>
-            <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info" role="button">
-                Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
-            </a>
-        </p>
-    {% else %}
-        <p>
-            Your account, <b>{{ request.user.get_name }}</b>,
-            has just been hacked using your ID, <b>{{ request.user.username }}</b>.
-        </p>
-        <p>
-            Please enjoy the rest of your day.
-        </p>
-    {% endif %}
-
     <p>
-        Regular Text
-        &bull;
-        <span class="text-primary">Primary Text</span>
-        &bull;
-        <a class="" href="#0">Regular Link</a>
-        &bull;
-        <a class="link-body-emphasis" href="#0">Body Emphasis Link</a>
-        &bull;
-        <a class="link-primary" href="#0">Primary Link</a>
+      <a class="link-info text-decoration-none" href="{% url 'admin:api_tiktokuser_changelist' %}">
+        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
+      </a>
     </p>
-    <button type="button" class="btn btn-primary">Primary Button</button>
-    <button type="button" class="btn btn-info">Info Button</button>
-    <button type="button" class="btn btn-warning">Warning Button</button>
+  {% endif %}
 
 {% endblock %} <!-- body -->
 
 {% block tail %}
-    <script type="text/javascript" src="{% static 'js/home.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/home.js' %}"></script>
 {% endblock %}
