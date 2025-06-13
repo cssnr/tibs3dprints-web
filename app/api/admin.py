@@ -5,7 +5,7 @@ from .models import TikTokUser
 
 @admin.register(TikTokUser)
 class TikTokUserAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "open_id")
+    list_display = ("display_name", "open_id", "created_at")
     list_filter = ("display_name",)
     search_fields = ("display_name",)
     ordering = ("display_name",)
@@ -13,6 +13,8 @@ class TikTokUserAdmin(admin.ModelAdmin):
         "display_name",
         "open_id",
         "avatar_url",
+        "updated_at",
+        "created_at",
         "access_token",
         "refresh_token",
         "expires_in",

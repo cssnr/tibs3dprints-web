@@ -53,8 +53,7 @@ def api_view(request):
     except Exception as error:
         log.error(error)
 
-    # messages.info(request, 'Welcome Home.')
-    return HttpResponse()
+    return HttpResponse("Online.")
 
 
 @require_http_methods(["POST"])
