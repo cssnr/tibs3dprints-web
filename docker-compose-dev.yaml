@@ -36,9 +36,9 @@ services:
     env_file: settings.env
     #command: "sh -c 'python manage.py runserver 0.0.0.0:9000'"
     command: >
-      watchmedo auto-restart 
-        -d /app -p '*.py;*.html' -R -- 
-        gunicorn project.asgi:application 
+      watchmedo auto-restart
+        -d /app -p '*.py;*.html' -R --
+        gunicorn project.asgi:application
           -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker
     #healthcheck:
     #  test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
