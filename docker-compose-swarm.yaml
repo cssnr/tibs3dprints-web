@@ -95,6 +95,10 @@ services:
       DISCORD_WEBHOOK: ${DISCORD_WEBHOOK}
       DISCORD_INVITE: ${DISCORD_INVITE}
       CONTACT_FORM_TO_EMAIL: ${CONTACT_FORM_TO_EMAIL}
+      WEBSITE_URL: ${WEBSITE_URL}
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
+      TIKTOK_REDIRECT_URI: ${TIKTOK_REDIRECT_URI}
     command: "gunicorn project.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]

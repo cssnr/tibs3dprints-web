@@ -11,6 +11,9 @@ class TikTokUser(models.Model):
     display_name = models.CharField(blank=True, max_length=255)
     avatar_url = models.URLField(blank=True, max_length=510)
 
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return self.display_name or self.open_id
 
