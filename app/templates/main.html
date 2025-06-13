@@ -1,0 +1,255 @@
+{% load home_tags %}
+{% load static %}
+{#{% load cache %}#}
+
+<!doctype html>
+<html lang="en" class="h-100">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>{{ meta.title }} - {% block title %}{% endblock %}</title>
+
+    {% block meta %}
+        <meta name="author" content="{{ meta.author }}">
+        <meta name="title" content="{{ meta.title }}">
+        <meta name="description" content="{{ meta.description }}">
+
+        <meta property="og:author" content="{{ meta.author }}">
+        <meta property="og:title" content="{{ meta.title }}">
+        <meta property="og:description" content="{{ meta.description }}">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ request.build_absolute_uri }}">
+        <meta property="og:image" content="{% static_full request 'images/apple-touch-icon.png' %}">
+
+        <meta name="darkreader-lock">
+    {% endblock %}
+
+    <link rel="icon" sizes="any" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+
+    <link rel="stylesheet" href="{% static 'bootstrap/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+    <script type="text/javascript" src="{% static "bootstrap/theme.js" %}"></script>
+
+    {% block head %}{% endblock %}
+
+</head>
+<body class="d-flex flex-column h-100">
+
+{% block header %}
+<header>
+<nav aria-label="Primary Navigation" class="navbar navbar-expand-md bg-body-tertiary">
+<div class="container-fluid">
+    <a class="px-2" href="{% url 'home:index' %}">
+        <img alt="Logo" class="my-auto rounded rounded-2" width="30" height="30" src="{% static 'images/apple-touch-icon.png' %}"></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+            aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto">
+            {% for item in navigation %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == item.path %}active{% endif %}"
+                       href="{% url item.url %}" {% if item.external %}target="_blank"{% endif %}>
+                        {{ item.name }}{% if item.external %} <i class="fa-solid fa-arrow-up-right-from-square fa-sm"></i>{% endif %}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        <ul class="navbar-nav">
+{#            {% cache 86400 user_dropdown request.user %}#}
+            {% if not request.user.is_authenticated %}
+                <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info me-2" role="button">
+                    Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
+                </a>
+            {% else %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link" id="navbarDropdown2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ request.user.get_name }}
+                        <i class="fa-solid fa-caret-down fa-xs mx-1"></i>
+                        <img height="30" width="30" alt="P" src="{{ request.user|avatar_url }}" class="rounded-circle float-end ms-1 pb-1 d-none d-md-inline">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown2">
+                        <li><a class="dropdown-item" role="button" data-bs-toggle="modal" data-bs-target="#user-info-modal">
+                            <i class="fas fa-user-circle me-2"></i> Profile</a></li>
+                        {% if request.user.is_staff or request.user.is_superuser %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-success" href="{% url 'admin:index' %}">
+                                <i class="fa-solid fa-rocket me-2"></i> Admin</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-info" href="{% url 'flower' %}" target="_blank">
+                                <i class="fas fa-seedling me-2"></i> Flower <i class="fas fa-external-link-alt ms-1 fa-xs"></i></a></li>
+                            <li><a class="dropdown-item text-info" href="{% url 'redis' %}" target="_blank">
+                                <i class="fa-solid fa-database me-2"></i> Redis <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>
+                            <li><a class="dropdown-item text-info" href="{% url 'phpmyadmin' %}" target="_blank">
+                                <i class="fa-solid fa-server me-2"></i> MySQL <i class="fa-solid fa-arrow-up-right-from-square ms-1 fa-xs"></i></a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-warning" role="button" id="flush-cache">
+                                <i class="fa-solid fa-toilet me-2"></i> Flush Cache</a></li>
+                        {% endif %}
+                        <div class="dropdown-divider"></div>
+                        <li><a class="dropdown-item log-out text-danger" role="button">
+                            <i class="fas fa-sign-out-alt me-2"></i> Log Out</a></li>
+                    </ul>
+                </li>
+            {% endif %}
+{#            {% endcache %}#}
+
+            <li class="nav-item dropdown">
+                <a class="nav-link" id="bd-theme-disabled" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 56px;">
+                    <span class="d-md-none me-2">Theme</span>
+                    <i id="theme-icon" class="fa-solid fa-circle-half-stroke fa-lg" style="min-width: 20px;"></i> <i class="fa-solid fa-caret-down fa-xs mx-1"></i></a>
+                <ul class="dropdown-menu auto dropdown-menu-end" aria-labelledby="bd-theme-disabled">
+                    <li><button class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
+                        <i class="fa-regular fa-moon" style="min-width: 16px;"></i> <span class="ms-3">Dark</span></button></li>
+                    <li><button class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
+                        <i class="fa-solid fa-sun" style="min-width: 16px;"></i> <span class="ms-3">Light</span></button></li>
+                    <li><button class="dropdown-item" data-bs-theme-value="auto" aria-pressed="false">
+                        <i class="fa-solid fa-circle-half-stroke" style="min-width: 16px;"></i> <span class="ms-3">Auto</span></button></li>
+                </ul>
+            </li>
+
+        </ul>
+    </div>
+</div>
+</nav>
+</header>
+{% endblock %} <!-- header -->
+
+<main class="flex-grow-1 px-0 px-sm-3">
+    <div class="container-fluid">
+        {% block body %}{% endblock %}
+    </div>
+</main> <!-- main -->
+
+{% block footer %}
+<footer class="footer mt-auto px-1 flex-shrink-0 bg-body-tertiary">
+<div class="container-fluid py-2">
+    <div class="d-flex flex-column flex-md-row">
+        <div class="me-md-auto mb-2 mb-md-0">
+            Join our <i class="fab fa-discord"></i>
+            <a class="link-body-emphasis link-offset-1 link-underline-opacity-50 link-underline-opacity-75-hover"
+               href="{% get_config 'DISCORD_INVITE' %}" target="_blank" rel="noopener">Discord</a>.
+        </div>
+
+        <div class="ms-md-auto">
+            <nav aria-label="Secondary Navigation">
+                <ul class="list-inline mb-1 d-flex flex-column flex-sm-row">
+                    {% for item in navigation %}
+                        <li class="list-inline-item mb-2 mb-sm-0">
+                            <a class="text-decoration-none link-body-emphasis {% if request.path == item.path %}fw-bold{% endif %}"
+                               href="{% url item.url %}" {% if item.external %}target="_blank"{% endif %}>
+                                {{ item.name }}{% if item.external %} <i class="fa-solid fa-arrow-up-right-from-square fa-sm"></i>{% endif %}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+</footer>
+{% endblock %} <!-- footer -->
+
+{% if request.user.is_authenticated %}
+    <form id="log-out-form" action="{% url 'oauth:logout' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    </form> <!-- log-out -->
+
+    <div class="modal fade" id="user-info-modal" tabindex="-1" aria-labelledby="user-info-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="user-info-modal-label">
+                <i class="fas fa-user-circle me-2"></i> Profile</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <img alt="Avatar" src="{{ request.user|avatar_url }}" class="rounded float-end m-2" style="max-height:128px;max-width:128px;">
+            <h4 class="modal-title">{{ request.user.get_name }}</h4>
+            <p>Information provided by Discord.</p>
+            <p></p>
+            <div class="clearfix"></div>
+            <table class="table mt-2">
+                <tbody>
+                <tr>
+                    <th>Discord ID</th>
+                    <td>{{ request.user.username }}</td>
+                </tr>
+                <tr>
+                    <th>Discord Username</th>
+                    <td>{{ request.user.first_name }}#{{ request.user.last_name }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <a href="https://discord.com/login" class="btn btn-primary me-auto" role="button" target="_blank" rel="noopener">
+                Open in Discord <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+    </div>
+    </div>
+    </div> <!-- modal -->
+{% endif %} <!-- is_authenticated -->
+
+<button id="back-to-top" type="button" class="btn btn-outline-secondary">
+    <i class="fa-regular fa-square-caret-up"></i>
+</button> <!-- back-to-top -->
+
+<div aria-live="polite" aria-atomic="true" class="">
+    <div id="toast-container" class="toast-container">
+
+        <div id="ws-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+            <div class="toast-header">
+                <strong class="me-auto text-warning">Reconnecting...</strong>
+                <small>Server</small>
+            </div>
+            <div class="toast-body">
+                Websocket Connection Closed. <strong><a href="javascript:location.reload(true)">Reload</a></strong>.
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast align-items-center border-0 text-bg-{{ message.tags }} django-toast" role="alert"
+                     aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
+                    <div class="toast-body">{{ message }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+    </div> <!-- toast-container -->
+</div> <!-- polite -->
+
+<div id="clone" class="d-none">
+    <div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="15000">
+        <div class="toast-body"></div>
+    </div>
+</div> <!-- d-none -->
+
+{% block javascript %}
+    <script type="text/javascript" src="{% static 'dist/jquery/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/clipboard/clipboard.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js-cookie/js.cookie.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/main.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/socket.js' %}"></script>
+    {% if request.user.is_authenticated %}
+        <script type="text/javascript" src="{% static 'js/user.js' %}"></script>
+    {% endif %}
+{% endblock %} <!-- javascript -->
+
+{% block tail %}{% endblock %}
+
+</body>
+</html>

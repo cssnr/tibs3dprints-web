@@ -1,0 +1,22 @@
+{
+  "name": "tibs3dprints-web",
+  "scripts": {
+    "postinstall": "npx gulp && npm run sass",
+    "sass": "npx sass app/static/bootstrap/bootstrap.scss app/static/bootstrap/bootstrap.css --style=compressed --no-source-map",
+    "sass:watch": "npm run sass -- --watch"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "animate.css": "^4.1.1",
+    "bootstrap": "^5.3.6",
+    "clipboard": "^2.0.11",
+    "gulp": "^5.0.1",
+    "gulp-download2": "^1.1.0",
+    "jquery": "^3.7.1",
+    "js-cookie": "^3.0.5"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "sass": "^1.89.2"
+  }
+}

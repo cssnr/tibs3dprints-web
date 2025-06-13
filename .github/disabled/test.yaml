@@ -1,0 +1,153 @@
+name: "Test"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/test.yaml"
+      - "app/**"
+      - "nginx/**"
+      - "test.env"
+      - "gulpfile.js"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: "Test"
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '#notest') }}
+
+    services:
+      mariadb:
+        image: mariadb
+        ports:
+          - 3306:3306
+        env:
+          MARIADB_DATABASE: testdb
+          MARIADB_USER: testdb
+          MARIADB_PASSWORD: password123
+          MARIADB_RANDOM_ROOT_PASSWORD: 1
+        options: >-
+          --health-cmd "mariadb-admin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      #- name: "Cache Python"
+      #  uses: actions/cache@v4
+      #  id: python-cache
+      #  with:
+      #    path: ~/.cache/pip
+      #    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-pip-
+
+      #- name: "Python Cache Hit"
+      #  if: ${{ steps.python-cache.outputs.cache-hit }}
+      #  run: |
+      #    echo "cache-hit: '${{ steps.python-cache.outputs.cache-hit }}'"
+
+      - name: "Python Install"
+        working-directory: app
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt
+          python -m pip install coverage
+
+      - name: "Setup Node 22"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: "Node Install"
+        run: |
+          npm install
+
+      - name: "Debug"
+        continue-on-error: true
+        run: |
+          set +e
+          echo "group: ${{ github.workflow }}-${{ github.ref }}"
+
+          echo "github.workflow: ${{ github.workflow }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "pull_request.number: ${{ github.event.pull_request.number }}"
+
+          which python
+          python -V
+
+          echo "::group::pip freeze"
+          python -m pip freeze
+          echo "::endgroup::"
+
+          echo "::group::pip outdated"
+          python -m pip list --outdated
+          echo "::endgroup::"
+
+          echo "::group::env"
+          env
+          echo "::endgroup::"
+
+          echo "::group::set"
+          set -o
+          echo "::endgroup::"
+
+      - name: "Test Migrations"
+        working-directory: app
+        run: |
+          set -a
+          source ../test.env
+          #python manage.py makemigrations --dry-run --check --noinput
+          python manage.py migrate
+
+      - name: "Test App"
+        id: test
+        working-directory: app
+        run: |
+          set -a
+          source ../test.env
+          coverage run --rcfile=../pyproject.toml manage.py test --verbosity 2 --keepdb
+          coverage xml
+          coverage report
+
+      - name: "Codecov"
+        #if: ${{ !cancelled() && steps.test.outcome == 'success' }}
+        continue-on-error: true # will fail if external PR due to secrets
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: app/coverage.xml
+
+      #- name: "Codacy Coverage"
+      #  uses: codacy/codacy-coverage-reporter-action@v1
+      #  with:
+      #    project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      #    coverage-reports: app/coverage.xml

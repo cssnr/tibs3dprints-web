@@ -1,0 +1,134 @@
+version: "3.8"
+
+services:
+  nginx:
+    build:
+      context: nginx
+    image: myapp-nginx:${VERSION:-latest}
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf localhost:80/health-check || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - data_dir:/data
+    secrets:
+      - source: cssnr_basic_http_auth
+        target: /etc/nginx/auth.users
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+
+  app:
+    build:
+      context: app
+    image: myapp-app:${VERSION:-latest}
+    env_file: settings.env
+    command: "gunicorn project.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    volumes:
+      - data_dir:/data
+    depends_on:
+      - redis
+
+  worker:
+    image: myapp-app:${VERSION:-latest}
+    env_file: settings.env
+    command: "celery -A project worker -l INFO -c 2"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    #volumes:
+    #  - data_dir:/data
+    depends_on:
+      - redis
+
+  beat:
+    image: myapp-app:${VERSION:-latest}
+    env_file: settings.env
+    command: "celery -A project beat -l INFO -S django"
+    deploy:
+      replicas: 1
+    depends_on:
+      - redis
+      - worker
+
+  redis:
+    image: redis:6-alpine
+    command: "redis-server --appendonly yes"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+    volumes:
+      - redis_data:/data
+
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0,local:redis:6379:1
+      - URL_PREFIX=/redis
+      - TRUST_PROXY=true
+    deploy:
+      replicas: 1
+    depends_on:
+      - redis
+
+  flower:
+    image: mher/flower:1.2
+    env_file: settings.env
+    command: "celery flower --enable_events=False --url_prefix=flower"
+    deploy:
+      replicas: 1
+    volumes:
+      - flower_data:/data
+    depends_on:
+      - app
+      - redis
+      - worker
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    env_file: settings.env
+    environment:
+      - APACHE_PORT=8082
+      - PMA_ABSOLUTE_URI=/phpmyadmin/
+      - PMA_HOST=${DATABASE_HOST}
+      - PMA_PORT=${DATABASE_PORT}
+      - PMA_USER=${DATABASE_USER}
+      - PMA_PASSWORD=${DATABASE_PASS}
+    deploy:
+      replicas: 1
+
+secrets:
+  cssnr_basic_http_auth:
+    file: ~/basic_http_auth
+
+volumes:
+  data_dir:
+  flower_data:
+  redis_data:

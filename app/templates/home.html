@@ -1,0 +1,61 @@
+{% extends "main.html" %}
+{% block title %}Home{% endblock %}
+{% load home_tags %}
+{% load static %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+
+    <h1>Home</h1>
+
+    <p>
+        This is your life now! WE ROLLIN!
+    </p>
+    <p>
+        You don't know my life! That you know of...
+    </p>
+
+    <div class="input-group mb-3">
+        <button class="btn btn-success" type="button" id="send-toast">Send Toast <i
+                class="fa-solid fa-champagne-glasses ms-2"></i></button>
+        <input id="toast-message" type="text" class="form-control" placeholder="Test Toast Message" aria-label="Toast"
+               aria-describedby="send-toast">
+    </div>
+
+    {% if not request.user.is_authenticated %}
+        <p>
+            <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info" role="button">
+                Log in with Discord <i class="fas fa-sign-in-alt ms-2"></i>
+            </a>
+        </p>
+    {% else %}
+        <p>
+            Your account, <b>{{ request.user.get_name }}</b>,
+            has just been hacked using your ID, <b>{{ request.user.username }}</b>.
+        </p>
+        <p>
+            Please enjoy the rest of your day.
+        </p>
+    {% endif %}
+
+    <p>
+        Regular Text
+        &bull;
+        <span class="text-primary">Primary Text</span>
+        &bull;
+        <a class="" href="#0">Regular Link</a>
+        &bull;
+        <a class="link-body-emphasis" href="#0">Body Emphasis Link</a>
+        &bull;
+        <a class="link-primary" href="#0">Primary Link</a>
+    </p>
+    <button type="button" class="btn btn-primary">Primary Button</button>
+    <button type="button" class="btn btn-info">Info Button</button>
+    <button type="button" class="btn btn-warning">Warning Button</button>
+
+{% endblock %} <!-- body -->
+
+{% block tail %}
+    <script type="text/javascript" src="{% static 'js/home.js' %}"></script>
+{% endblock %}

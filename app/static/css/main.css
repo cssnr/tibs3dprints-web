@@ -1,0 +1,53 @@
+/* Always Show Scrollbar */
+body {
+    overflow-y: scroll !important;
+}
+
+/* Visually Show Disabled Elements on Mouseover */
+.disabled {
+    cursor: not-allowed !important;
+}
+
+/* Recaptcha Border and Load Fix */
+.g-recaptcha {
+    overflow: hidden;
+    width: 302px;
+    height: 76px;
+}
+/*iframe {*/
+/*    margin:-1px 0px 0px -2px;*/
+/*}*/
+
+/* Modal Fix for Always Show Scrollbar */
+.modal-open {
+    overflow-y: scroll !important;
+    padding-right: 0 !important;
+}
+
+#toast-container {
+    position: fixed;
+    bottom: 52px;
+    right: 8px;
+    /*z-index: 3;*/
+}
+
+/* Back To Top */
+#back-to-top {
+    position: fixed;
+    bottom: 52px;
+    right: 8px;
+    display: none;
+    z-index: 3;
+}
+
+/* Footer Navigation */
+@media (min-width: 576px) {
+    footer li + li::before {
+        content: '•';
+        margin-right: 0.3rem;
+    }
+}
+
+.dropdown-menu.auto {
+    min-width: inherit;
+}

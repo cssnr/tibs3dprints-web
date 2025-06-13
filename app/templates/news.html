@@ -1,0 +1,41 @@
+{% extends "main.html" %}
+{% block title %}News{% endblock %}
+{% load home_tags %}
+{% load static %}
+{% load cache %}
+{% load tz %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+
+    <h1>News</h1>
+    
+    {% if request.user.is_superuser %}
+        <p>
+            <a class="link-info text-decoration-none" href="{% url 'admin:home_mynews_add' %}">
+                <i class="fa-solid fa-plus fa-lg me-2"></i> Add News
+            </a>
+        </p>
+    {% endif %}
+
+    {% get_current_timezone as time_zone %}
+    <p>Debug Django Time Zone: {{ time_zone }}</p>
+    
+{#    {% cache 86400 news_body request.user.is_superuser time_zone %}#}
+    {% cache 86400 news_body request.user.is_superuser %}
+        {% if news %}
+            {% for news in news %}
+                {% include 'include/article.html' with news=news %}
+                <br>
+            {% endfor %}
+        {% else %}
+            <p>No News! (Is Good News?)</p>
+        {% endif %}
+    {% endcache %}
+
+{% endblock %} <!-- body -->
+
+{% block tail %}
+    <script type="text/javascript" src="{% static 'js/news.js' %}"></script>
+{% endblock %}

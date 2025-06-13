@@ -1,0 +1,219 @@
+version: "3.8"
+
+services:
+  nginx:
+    build: nginx
+    image: ghcr.io/cssnr/tibs3dprints-web-nginx:${VERSION:-latest}
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik-public"
+        - "traefik.constraint-label=traefik-public"
+        - "traefik.http.routers.${STACK_NAME}-http.rule=Host(`${TRAEFIK_HOST}`)"
+        - "traefik.http.routers.${STACK_NAME}-http.entrypoints=http"
+        - "traefik.http.routers.${STACK_NAME}-http.middlewares=https-redirect"
+        - "traefik.http.routers.${STACK_NAME}-https.rule=Host(`${TRAEFIK_HOST}`)"
+        - "traefik.http.routers.${STACK_NAME}-https.entrypoints=https"
+        - "traefik.http.routers.${STACK_NAME}-https.tls=true"
+        - "traefik.http.services.${STACK_NAME}.loadbalancer.server.port=80"
+        - "traefik.http.services.${STACK_NAME}.loadbalancer.server.scheme=http"
+    #healthcheck:
+    #  test: ["CMD-SHELL", "curl -sf localhost:80/health-check || exit 1"]
+    #  interval: 10s
+    #  timeout: 10s
+    #  retries: 3
+    #  start_period: 10s
+    volumes:
+      - data_dir:/data
+    secrets:
+      - source: cssnr_basic_http_auth
+        target: /etc/nginx/auth.users
+    depends_on:
+      - app
+      #- flower
+      #- redis-commander
+      #- phpmyadmin
+    networks:
+      - traefik-public
+      - internal
+
+  app:
+    build: app
+    image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
+    environment: &environment
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+      DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL}
+      DEBUG: ${DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_ORIGINS: ${CSRF_ORIGINS}
+      SESSION_COOKIE_AGE: ${SESSION_COOKIE_AGE}
+      SECRET_KEY: ${SECRET_KEY}
+      STATIC_ROOT: ${STATIC_ROOT}
+      MEDIA_ROOT: ${MEDIA_ROOT}
+      USE_TZ: ${USE_TZ}
+      LANGUAGE_CODE: ${LANGUAGE_CODE}
+      TZ: ${TZ}
+      DATABASE_TYPE: ${DATABASE_TYPE}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASS: ${DATABASE_PASS}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      SENTRY_URL: ${SENTRY_URL}
+      SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
+      SENTRY_DEBUG: ${SENTRY_DEBUG}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT}
+      USE_X_FORWARDED_HOST: ${USE_X_FORWARDED_HOST}
+      SECURE_REFERRER_POLICY: ${SECURE_REFERRER_POLICY}
+      REDIS_IGNORE_EXCEPTIONS: ${REDIS_IGNORE_EXCEPTIONS}
+      CACHE_BACKEND: ${CACHE_BACKEND}
+      CACHE_LOCATION: ${CACHE_LOCATION}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      EMAIL_FROM_USER: ${EMAIL_FROM_USER}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS}
+      EMAIL_PORT: ${EMAIL_PORT}
+      GOOGLE_SITE_PUBLIC: ${GOOGLE_SITE_PUBLIC}
+      GOOGLE_SITE_SECRET: ${GOOGLE_SITE_SECRET}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
+      OAUTH_REDIRECT_URL: ${OAUTH_REDIRECT_URL}
+      SITE_URL: ${SITE_URL}
+      SUPER_USERS: ${SUPER_USERS}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK}
+      DISCORD_INVITE: ${DISCORD_INVITE}
+      CONTACT_FORM_TO_EMAIL: ${CONTACT_FORM_TO_EMAIL}
+    command: "gunicorn project.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    volumes:
+      - data_dir:/data
+    depends_on:
+      - redis
+    networks:
+      - internal
+
+  #worker:
+  #  image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
+  #  environment: *environment
+  #  command: "celery -A project worker -l INFO -c 2"
+  #  deploy:
+  #    replicas: 1
+  #    resources:
+  #      limits:
+  #        cpus: "2.0"
+  #        memory: 256M
+  #  #volumes:
+  #  #  - data_dir:/data
+  #  depends_on:
+  #    - redis
+  #  networks:
+  #    - internal
+
+  #beat:
+  #  image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
+  #  environment: *environment
+  #  command: "celery -A project beat -l INFO -S django"
+  #  deploy:
+  #    replicas: 1
+  #  depends_on:
+  #    - redis
+  #    - worker
+  #  networks:
+  #    - internal
+
+  redis:
+    image: redis:6-alpine
+    command: "redis-server --appendonly yes"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 32M
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  #redis-commander:
+  #  image: ghcr.io/joeferner/redis-commander:latest
+  #  environment:
+  #    - REDIS_HOSTS=local:redis:6379:0,local:redis:6379:1
+  #    - URL_PREFIX=/redis
+  #    - TRUST_PROXY=true
+  #  deploy:
+  #    replicas: 1
+  #  depends_on:
+  #    - redis
+  #  networks:
+  #    - internal
+
+  #flower:
+  #  image: mher/flower:1.2
+  #  environment: *environment
+  #  command: "celery flower --enable_events=False --url_prefix=flower"
+  #  deploy:
+  #    replicas: 1
+  #  volumes:
+  #    - flower_data:/data
+  #  depends_on:
+  #    - app
+  #    - redis
+  #    - worker
+  #  networks:
+  #    - internal
+
+  #phpmyadmin:
+  #  image: phpmyadmin:latest
+  #  environment:
+  #    - APACHE_PORT=8082
+  #    - PMA_ABSOLUTE_URI=/phpmyadmin/
+  #    - PMA_HOST=${DATABASE_HOST}
+  #    - PMA_PORT=${DATABASE_PORT}
+  #    - PMA_USER=${DATABASE_USER}
+  #    - PMA_PASSWORD=${DATABASE_PASS}
+  #  deploy:
+  #    replicas: 1
+  #  networks:
+  #    - internal
+
+networks:
+  internal:
+    driver: overlay
+  traefik-public:
+    external: true
+
+secrets:
+  cssnr_basic_http_auth:
+    external: true
+
+volumes:
+  data_dir:
+    #driver_opts:
+    #  type: none
+    #  o: bind
+    #  device: /data/docker/${STACK_NAME}
+  #flower_data:
+  redis_data:

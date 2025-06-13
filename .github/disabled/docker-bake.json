@@ -1,0 +1,23 @@
+{
+  "group": {
+    "default": {
+      "targets": ["app", "nginx"]
+    }
+  },
+  "target": {
+    "app": {
+      "context": "app",
+      "dockerfile": "Dockerfile",
+      "tags": ["ghcr.io/cssnr/tibs3dprints-web-app:latest"],
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "output": ["type=image,push=true"]
+    },
+    "nginx": {
+      "context": "nginx",
+      "dockerfile": "Dockerfile",
+      "tags": ["ghcr.io/cssnr/tibs3dprints-web-nginx:latest"],
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "output": ["type=image,push=true"]
+    }
+  }
+}

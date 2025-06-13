@@ -1,0 +1,76 @@
+{% extends "main.html" %}
+{% block title %}Message{% endblock %}
+{% load home_tags %}
+{% load static %}
+{% load cache %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+
+    <h1>Message</h1>
+
+    {% if request.user.is_superuser %}
+        <p>
+            <a class="link-info text-decoration-none" href="{% url 'admin:home_message_changelist' %}">
+                <i class="fa-solid fa-comments me-2"></i> View Messages
+            </a>
+        </p>
+    {% endif %}
+
+    <p class="lead">Send us a Discord message.</p>
+
+    <form id="message-form" name="message-form" class="submit" method="post" action="{% url 'home:message' %}"
+          data-success="#submit-success" data-processing=".fa-spin">
+        {% csrf_token %}
+        <div class="row">
+            <div class="mb-3 col-12 col-md-6">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Name" required>
+                <div class="invalid-feedback" id="char_name-invalid"></div>
+            </div>
+            <div class="mb-3 col-12 col-md-6">
+                <label for="reason">Reason</label>
+                <select id="reason" name="reason" class="form-control custom-select" required>
+                    <option value="" selected disabled>-- Select One --</option>
+                    <option value="Donate1">Donate Money</option>
+                    <option value="Donate2">Give Money</option>
+                    <option value="Donate3">Pay Money</option>
+                </select>
+                <div class="invalid-feedback" id="char_role-invalid"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col mb-3">
+                <label for="message">Message</label>
+                <textarea class="form-control" id="message" name="message" rows="3"
+                          placeholder="Message body." required></textarea>
+                <div class="invalid-feedback" id="raid_exp-invalid"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col mb-3">
+                {% if request.session.g_verified or request.user.is_authenticated %}{% else %}
+                    <div class="g-recaptcha rounded rounded-3" data-theme="dark"
+                         data-sitekey="{% get_config 'GOOGLE_SITE_PUBLIC' %}">
+                    </div>
+                {% endif %}
+                <button type="submit"  class="btn btn-outline-success my-2">
+                    Send Message <i class="far fa-paper-plane ms-2"></i></button>
+                <i class="fas fa-sync fa-spin fa-xl text-warning ms-2 d-none"></i>
+            </div>
+        </div>
+    </form>
+
+    <div id="submit-success" class="alert alert-success d-none" role="alert">
+        Your message has been successfully submitted.
+    </div>
+
+{% endblock %} <!-- body -->
+
+{% block tail %}
+    <script type="text/javascript" src="{% static 'js/forms.js' %}"></script>
+    {% if request.session.g_verified or request.user.is_authenticated %}{% else %}
+        <script type="text/javascript" src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {% endif %}
+{% endblock %}

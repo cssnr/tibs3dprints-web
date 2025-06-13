@@ -1,0 +1,35 @@
+# Production
+
+celery>=5,<6
+channels[daphne]<5
+channels-redis<5
+django>=5,<6
+django-celery-beat<3
+django-cors-headers<5
+django-redis>=5,<6
+gunicorn
+httpx
+mysqlclient
+#psycopg[binary]
+python-decouple
+sentry-sdk
+uvicorn[standard]
+
+
+# Development
+
+django-debug-toolbar<6
+django-extensions
+watchdog
+Werkzeug
+
+
+# Tools
+
+bandit
+black
+coverage
+flake8
+mypy
+ruff
+yamllint
