@@ -3,9 +3,6 @@ from django.contrib import admin
 from .models import TikTokUser
 
 
-admin.site.site_header = "Tik Tok Administration"
-
-
 @admin.register(TikTokUser)
 class TikTokUserAdmin(admin.ModelAdmin):
     list_display = ("display_name", "open_id")

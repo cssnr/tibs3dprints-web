@@ -1,71 +1,21 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from functools import wraps
 
 import httpx
-from decouple import Csv, config
+from decouple import config
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from api.models import TikTokUser
 from home.tasks import send_discord
-from oauth.models import CustomUser
-
-
-# import io
-# import os
-# import random
-# import httpx
-# from pprint import pprint
-# from urllib.parse import urlparse
-# from django.shortcuts import get_object_or_404, redirect, render, reverse
-# from django.views.decorators.cache import cache_control, cache_page
-# from typing import Any, BinaryIO, Callable, Optional, Union
-# from django.contrib.auth.decorators import login_required
-# from django.core import serializers
-# from django.core.paginator import Paginator
-# from django.forms.models import model_to_dict
-# from django.views.decorators.http import require_http_methods
-# from django.views.decorators.vary import vary_on_cookie, vary_on_headers
 
 
 logger = logging.getLogger("app")
 log = logging.getLogger("app")
 cache_seconds = 60 * 60 * 4
-
-
-# def auth_from_token(view=None, no_fail=False):
-#     @wraps(view)
-#     def wrapper(request, *args, **kwargs):
-#         if getattr(request, "user", None) and request.user.is_authenticated:
-#             return view(request, *args, **kwargs)
-#         authorization = (
-#             request.headers.get("Authorization") or request.headers.get("Token") or request.GET.get("token")
-#         )
-#         # log.debug('authorization: %s', authorization)
-#         if authorization:
-#             user = CustomUser.objects.filter(authorization=authorization)
-#             if user:
-#                 request.user = user[0]
-#                 return view(request, *args, **kwargs)
-#         if not no_fail:
-#             return JsonResponse({"error": "Invalid Authorization"}, status=401)
-#         return view(request, *args, **kwargs)
-#
-#     if view:
-#         return wrapper
-#     else:
-#         return lambda func: auth_from_token(func, no_fail)
-
-
-# @require_http_methods(["OPTIONS", "POST"])
-# @csrf_exempt
-# @login_required
-# @auth_from_token
 
 
 @csrf_exempt
@@ -149,9 +99,6 @@ def auth_view(request):
     except Exception as error:
         log.error(error)
         return JsonResponse({"error": str(error)}, status=500)
-
-
-# {'error': 'invalid_grant', 'error_description': 'Authorization code is expired.', 'log_id': '2025061222001136E8F25E5AE2100F3B01'}
 
 
 def get_access_token(code: str, code_verifier: str) -> dict:

@@ -5,7 +5,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from home.models import MyNews
-from home.tasks import clear_news_cache, save_news_task
+from home.tasks import save_news_task
 
 
 # from django.forms.models import model_to_dict

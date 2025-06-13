@@ -5,7 +5,7 @@ from .models import Contact, Message, MyNews
 
 admin.site.register(Message)
 
-admin.site.site_header = "My App Administration"
+admin.site.site_header = "Tibs3DPrints Administration"
 
 
 @admin.register(Contact)

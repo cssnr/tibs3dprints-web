@@ -35,7 +35,11 @@ services:
     image: myapp-app:${VERSION:-latest}
     env_file: settings.env
     #command: "sh -c 'python manage.py runserver 0.0.0.0:9000'"
-    command: "watchmedo auto-restart -d /app -p '*.py;*.html' -R -- gunicorn project.asgi:application -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker"
+    command: >
+      watchmedo auto-restart
+        -d /app -p '*.py;*.html' -R --
+        gunicorn project.asgi:application
+          -b 0.0.0.0:9000 -w 2 -k uvicorn.workers.UvicornWorker
     #healthcheck:
     #  test: ["CMD", "curl", "-sf", "http://localhost:9000/app-health-check/"]
     #  interval: 1m

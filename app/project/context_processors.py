@@ -16,8 +16,8 @@ def site(request):
 
     meta = {
         "author": "Shane",
-        "title": "Tibs3DPrints App",
-        "description": "Tibs3DPrints App Website. Coming Soon...",
+        "title": "Tibs3DPrints Web",
+        "description": "Tibs3DPrints Web App. Coming Soon...",
     }
 
     navigation = [
