@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import BetaUser, Choice, Poll, TikTokUser, Vote
 
+
 admin.site.site_header = "Tibs3DPrints Administration"
 
 
