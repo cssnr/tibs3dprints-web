@@ -1,5 +1,6 @@
 import logging
 
+from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.core.cache import cache
@@ -46,6 +47,13 @@ def handler404_view(request, exception):
 def handler500_view(request):
     logger.debug("handler500_view")
     return render(request, "error/500.html", status=500)
+
+
+def tiktok_verify_view(request):
+    """
+    View  /tiktok*.txt
+    """
+    return HttpResponse(config("TIKTOK_SITE_VERIFICATION"))
 
 
 def dal_view(request):
