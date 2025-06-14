@@ -4,9 +4,7 @@ const cacheName = 'v1'
 
 const cacheResources = [
     '/',
-    '/news/',
-    '/message/',
-    '/contact/',
+    '/beta/',
 
     '/static/css/main.css',
     '/static/bootstrap/bootstrap.css',
@@ -15,7 +13,6 @@ const cacheResources = [
     '/static/js/forms.js',
     '/static/js/home.js',
     '/static/js/main.js',
-    '/static/js/news.js',
     '/static/js/socket.js',
     '/static/js/user.js',
 

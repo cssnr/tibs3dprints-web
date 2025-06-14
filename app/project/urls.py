@@ -10,9 +10,9 @@ from . import views
 urlpatterns = [
     path("", include("home.urls")),
     path("api/", include("api.urls")),
-    path(".well-known/assetlinks.json", views.dal_view),
-    re_path(r"^tiktok.*\.txt$", views.tiktok_verify_view),
     path("oauth/", include("oauth.urls")),
+    re_path(r"^tiktok.*\.txt$", views.tiktok_verify_view),
+    path(".well-known/assetlinks.json", views.dal_view),
     path("flush-cache/", views.flush_cache_view, name="flush_cache"),
     path("app-health-check/", views.health_check, name="health_check"),
     # path("flower/", RedirectView.as_view(url="/flower/"), name="flower"),

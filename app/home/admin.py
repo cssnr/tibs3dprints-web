@@ -1,12 +1,12 @@
 from django.contrib import admin
 
-from .models import BetaUser, Contact, Message, MyNews, TikTokUser
-
+from .models import BetaUser, Choice, Poll, TikTokUser, Vote
 
 admin.site.site_header = "Tibs3DPrints Administration"
 
 
-admin.site.register(Message)
+admin.site.register(Choice)
+admin.site.register(Poll)
 
 
 @admin.action(description="Add selected to Beta Test")
@@ -22,6 +22,7 @@ class TikTokUserAdmin(admin.ModelAdmin):
     ordering = ("display_name",)
     readonly_fields = (
         "display_name",
+        "authorization",
         "open_id",
         "avatar_url",
         "updated_at",
@@ -63,37 +64,10 @@ class BetaUserAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(Contact)
-class ContactAdmin(admin.ModelAdmin):
-    list_display = (
-        "email",
-        "subject",
-        "created_at",
-    )
-    search_fields = (
-        "email",
-        "subject",
-        "message",
-    )
-    readonly_fields = (
-        "send_copy",
-        "uuid",
-        "created_at",
-    )
-    ordering = ("-pk",)
+@admin.register(Vote)
+class VoteAdmin(admin.ModelAdmin):
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request, obj=None):
         return False
-
-
-@admin.register(MyNews)
-class MyNewsAdmin(admin.ModelAdmin):
-    list_display = (
-        "title",
-        "display_name",
-        "published",
-        "created_at",
-    )
-    list_filter = ("published",)
-    search_fields = ("title",)
-    ordering = ("-created_at",)

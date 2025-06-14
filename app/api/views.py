@@ -93,6 +93,9 @@ def auth_view(request):
             tiktoker.avatar_url = user.get("avatar_url", "")
 
             tiktoker.save()
+            log.debug("tiktoker: %s", tiktoker)
+            user["authorization"] = tiktoker.authorization
+            log.debug("user: %s", user)
             return JsonResponse(user)
         else:
             error_description = response.get("error_description", "Unknown")

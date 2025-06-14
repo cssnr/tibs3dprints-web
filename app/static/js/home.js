@@ -1,10 +1,3 @@
-// JS for news.html
+// JS for home.html
 
-document.getElementById('send-toast').addEventListener('click', testToast)
-
-const input = document.getElementById('toast-message')
-
-function testToast(event) {
-    console.debug('testToast:', event)
-    showToast(input.value || 'Test Toast Message')
-}
+console.log('home.js')

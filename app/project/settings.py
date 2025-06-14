@@ -138,7 +138,6 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "home",
     "oauth",
-    "api",
 ]
 
 MIDDLEWARE = [
