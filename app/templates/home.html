@@ -11,7 +11,7 @@
 
   {% if request.user.is_superuser %}
     <p>
-      <a class="link-info text-decoration-none" href="{% url 'admin:api_tiktokuser_changelist' %}">
+      <a class="link-info text-decoration-none" href="{% url 'admin:home_tiktokuser_changelist' %}">
         <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
       </a>
     </p>
@@ -37,7 +37,8 @@
       <p>From here you can manage your application.</p>
       <ul>
         <li><a href="{% url 'admin:index' %}">Admin Index</a></li>
-        <li><a href="{% url 'admin:api_tiktokuser_changelist' %}">User Management</a></li>
+        <li><a href="{% url 'admin:home_tiktokuser_changelist' %}">User Management</a></li>
+        <li><a href="{% url 'admin:home_betauser_changelist' %}">Beta Testers</a></li>
       </ul>
     {% else %}
       <p>Please contact the administrator if you think this is an error.</p>
