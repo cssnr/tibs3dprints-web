@@ -12,3 +12,9 @@ class ContactForm(forms.Form):
     subject = forms.CharField(max_length=128)
     message = forms.CharField()
     send_copy = forms.BooleanField(required=False)
+
+
+class BetaForm(forms.Form):
+    email = forms.EmailField()
+    name = forms.CharField(max_length=255)
+    details = forms.CharField(required=False)
