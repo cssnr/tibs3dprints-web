@@ -18,7 +18,7 @@ services:
     #  retries: 3
     #  start_period: 10s
     volumes:
-      #- data_dir:/data
+      - data_dir:/data
       - ${APP_FILES_STATIC:-./app/static}:/data/static
       - ${APP_FILES:-./app}:/app
     secrets:
@@ -53,7 +53,7 @@ services:
           cpus: "2.0"
           memory: 256M
     volumes:
-      #- data_dir:/data
+      - data_dir:/data
       - ${APP_FILES_STATIC:-./app/static}:/data/static
       - ${APP_FILES:-./app}:/app
     depends_on:

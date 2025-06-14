@@ -22,9 +22,6 @@ def site(request):
 
     navigation = [
         {"name": "Home", "url": "home:index", "path": "/"},
-        {"name": "News", "url": "home:news", "path": "/news/"},
-        {"name": "Message", "url": "home:message", "path": "/message/"},
-        {"name": "Contact", "url": "home:contact", "path": "/contact/"},
     ]
 
     return {
