@@ -1,13 +1,18 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
-from project.helpers import get_rand
+from project.helpers import gen_auth
 
 from .managers import PollManager
 
 
 class TikTokUser(models.Model):
     id = models.AutoField(primary_key=True)
-    authorization = models.CharField(default=get_rand, max_length=30)
+    authorization = models.CharField(default=gen_auth, max_length=255)
+
+    first_name = models.CharField(blank=True, max_length=255)
+    last_name = models.CharField(blank=True, max_length=255)
+    email_address = models.EmailField(blank=True)
 
     open_id = models.CharField(blank=True, max_length=255)
     access_token = models.CharField(blank=True, max_length=255)
@@ -21,7 +26,7 @@ class TikTokUser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.display_name or self.open_id
+        return self.display_name or self.open_id or "New User"
 
     def __repr__(self):
         return f"<id={self.id} name={self.display_name} open_id={self.open_id}"
@@ -29,7 +34,7 @@ class TikTokUser(models.Model):
     class Meta:
         verbose_name = "TikTok User"
         verbose_name_plural = "TikTok Users"
-        # ordering = ["-display_name"]
+        ordering = ["-id"]
 
 
 class BetaUser(models.Model):
@@ -46,6 +51,7 @@ class BetaUser(models.Model):
     class Meta:
         verbose_name = "Beta User"
         verbose_name_plural = "Beta Users"
+        ordering = ["-id"]
 
 
 class Poll(models.Model):
@@ -54,7 +60,6 @@ class Poll(models.Model):
     question = models.TextField(verbose_name="Question")
     start_at = models.DateTimeField(verbose_name="Start Date")
     end_at = models.DateTimeField(verbose_name="End Date")
-    duration = models.IntegerField(verbose_name="Duration", default=72)
     objects = PollManager()
 
     def __str__(self):
@@ -66,6 +71,21 @@ class Poll(models.Model):
     class Meta:
         verbose_name = "Poll"
         verbose_name_plural = "Polls"
+        ordering = ["-id"]
+
+    def clean(self):
+        overlapping = Poll.objects.filter(
+            end_at__gt=self.start_at,
+            start_at__lt=self.end_at,
+        )
+        if self.pk:
+            overlapping = overlapping.exclude(pk=self.pk)
+        if overlapping.exists():
+            raise ValidationError("Poll time overlaps with an existing poll.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Choice(models.Model):
@@ -83,6 +103,7 @@ class Choice(models.Model):
     class Meta:
         verbose_name = "Choice"
         verbose_name_plural = "Choices"
+        ordering = ["-id"]
 
 
 class Vote(models.Model):
@@ -102,3 +123,4 @@ class Vote(models.Model):
         unique_together = ("user", "poll")
         verbose_name = "Vote"
         verbose_name_plural = "Votes"
+        ordering = ["-id"]

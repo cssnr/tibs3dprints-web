@@ -1,21 +1,46 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
 
 import httpx
 from decouple import config
 from django.conf import settings
+from django.db import IntegrityError
+from django.db.models import F
+from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
+from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from home.models import TikTokUser
+from home.models import Choice, Poll, TikTokUser, Vote
 from home.tasks import send_discord
 
 
 logger = logging.getLogger("app")
-log = logging.getLogger("app")
-cache_seconds = 60 * 60 * 4
+# cache_seconds = 60 * 60 * 4
+
+
+def tiktok_auth_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        authorization = request.headers.get("Authorization")
+        logger.debug("authorization: %s", authorization)
+        if not authorization:
+            logger.warning("Missing Authorization header")
+            return JsonResponse({"error": "Authorization required"}, status=401)
+
+        try:
+            user = TikTokUser.objects.get(authorization=authorization)
+            request.user = user
+        except TikTokUser.DoesNotExist:
+            logger.warning("Invalid Authorization token: %s", authorization)
+            return JsonResponse({"error": "Invalid token"}, status=401)
+
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
 
 
 @csrf_exempt
@@ -23,35 +48,35 @@ def api_view(request):
     """
     View  /api/
     """
-    log.debug("api_view: %s - %s", request.method, request.META["PATH_INFO"])
-    log.debug("-" * 20)
+    logger.debug("api_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("-" * 20)
 
     try:
-        log.debug("-" * 20 + "\n" + json.dumps(request.META) + "\n")
+        logger.debug("-" * 20 + "\n" + json.dumps(request.META) + "\n")
     except:  # noqa: E722
-        log.debug("*" * 20)
-        log.debug(request.META)
-    log.debug("-" * 20)
+        logger.debug("*" * 20)
+        logger.debug(request.META)
+    logger.debug("-" * 20)
 
     try:
-        log.debug("-" * 20 + "\n" + request.body.decode("utf-8") + "\n")
+        logger.debug("-" * 20 + "\n" + request.body.decode("utf-8") + "\n")
     except:  # noqa: E722
-        log.debug("*" * 20)
-        log.debug(request.body)
-    log.debug("-" * 20)
+        logger.debug("*" * 20)
+        logger.debug(request.body)
+    logger.debug("-" * 20)
 
     try:
-        log.debug(json.loads(request.body.decode("utf-8")))
+        logger.debug(json.loads(request.body.decode("utf-8")))
     except:  # noqa: E722
-        log.debug("Unable to json.loads - request.body.decode()")
-    log.debug("-" * 20)
+        logger.debug("Unable to json.loads - request.body.decode()")
+    logger.debug("-" * 20)
 
     try:
         data = json.loads(request.body.decode("utf-8"))
         content = {"content": f"```json\n{data}\n```"}
         send_discord(content, settings.DISCORD_WEBHOOK)
     except Exception as error:
-        log.error(error)
+        logger.error(error)
 
     return HttpResponse("Online.")
 
@@ -64,26 +89,26 @@ def auth_view(request):
     """
     try:
         data = json.loads(request.body.decode("utf-8"))
-        log.debug("data: %s", data)
+        logger.debug("data: %s", data)
         code = data["code"]
         code_verifier = data["codeVerifier"]
         if not code or not code_verifier:
             return JsonResponse({"error": "Invalid Request."}, status=400)
         response = get_access_token(code, code_verifier)
-        log.debug("response: %s", response)
+        logger.debug("response: %s", response)
         access_token = response.get("access_token")
-        log.debug("access_token: %s", access_token)
+        logger.debug("access_token: %s", access_token)
         if access_token:
             profile = get_user_profile(access_token)
-            log.debug("profile: %s", profile)
+            logger.debug("profile: %s", profile)
             user = profile.get("data", {}).get("user", {})
-            log.debug("user: %s", user)
+            logger.debug("user: %s", user)
 
             tiktoker, created = TikTokUser.objects.get_or_create(
                 open_id=response["open_id"],
             )
-            log.debug("tiktoker: %s", tiktoker)
-            log.debug("created: %s", created)
+            logger.debug("tiktoker: %s", tiktoker)
+            logger.debug("created: %s", created)
 
             tiktoker.access_token = access_token
             tiktoker.open_id = response["open_id"]
@@ -93,15 +118,16 @@ def auth_view(request):
             tiktoker.avatar_url = user.get("avatar_url", "")
 
             tiktoker.save()
-            log.debug("tiktoker: %s", tiktoker)
+            logger.debug("tiktoker: %s", tiktoker)
+            logger.debug("authorization: %s", tiktoker.authorization)
             user["authorization"] = tiktoker.authorization
-            log.debug("user: %s", user)
+            logger.debug("user: %s", user)
             return JsonResponse(user)
         else:
             error_description = response.get("error_description", "Unknown")
             return JsonResponse({"error": error_description}, status=401)
     except Exception as error:
-        log.error(error)
+        logger.error(error)
         return JsonResponse({"error": str(error)}, status=500)
 
 
@@ -120,7 +146,7 @@ def get_access_token(code: str, code_verifier: str) -> dict:
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = httpx.post(url, data=data, headers=headers, timeout=10)
-    log.debug("r: %s", r)
+    logger.debug("r: %s", r)
     if not r.is_success:
         logger.info("status_code: %s", r.status_code)
         r.raise_for_status()
@@ -140,3 +166,82 @@ def get_user_profile(access_token: str) -> dict:
         logger.info("status_code: %s", r.status_code)
         r.raise_for_status()
     return r.json()
+
+
+@csrf_exempt
+@tiktok_auth_required
+def poll_current_view(request):
+    """
+    View  /api/poll/current/
+    """
+    logger.debug("poll_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("-" * 20)
+    poll = (
+        Poll.objects.prefetch_related("choice_set")
+        .filter(start_at__lte=now(), end_at__gt=now())
+        .order_by("start_at")
+        .first()
+    )
+    if not poll:
+        # return JsonResponse({})
+        return JsonResponse(None, safe=False)
+    logger.debug("poll: %s", poll)
+    data = {
+        "poll": model_to_dict(poll),
+        "choices": [serialize_choice(choice) for choice in poll.choice_set.all()],
+        "vote": serialize_vote(Vote.objects.filter(user=request.user, poll=poll).first()),
+    }
+    return JsonResponse(data)
+
+
+@csrf_exempt
+@tiktok_auth_required
+@require_http_methods(["POST"])
+def poll_vote_view(request):
+    """
+    View  /api/poll/vote/
+    """
+    logger.debug("poll_vote_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("-" * 20)
+    logger.debug("user: %s", request.user)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        logger.debug("data: %s", data)
+        poll = Poll.objects.get(id=data["poll"])
+        logger.debug("poll: %s", poll)
+        choice = Choice.objects.get(id=data["choice"])
+        logger.debug("choice: %s", choice)
+        try:
+            vote = Vote.objects.create(user=request.user, poll=poll, choice=choice)
+            logger.debug("vote: %s", vote)
+            choice.votes = F("votes") + 1
+            choice.save(update_fields=["votes"])
+            choice.refresh_from_db()
+        except IntegrityError as error:
+            logger.debug("error: %s", error)
+            return JsonResponse({"error": "Already Voted"}, status=400)
+
+        return JsonResponse(serialize_vote(vote), status=200)
+
+    except Exception as error:
+        logger.error(error)
+        return JsonResponse({"error": str(error)}, status=500)
+
+
+def serialize_choice(choice):
+    data = model_to_dict(choice)
+    data["file"] = choice.file.url if choice.file else None
+    return data
+
+
+def serialize_vote(vote):
+    if vote is None:
+        return None
+    return {
+        "id": vote.id,
+        "user_id": vote.user_id,
+        "poll_id": vote.poll_id,
+        "choice_id": vote.choice_id,
+        "notify_on_result": vote.notify_on_result,
+        "voted_at": vote.voted_at.isoformat() if vote.voted_at else None,
+    }
