@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.timezone import now
 
 from project.helpers import gen_auth
 
@@ -72,6 +73,9 @@ class Poll(models.Model):
         verbose_name = "Poll"
         verbose_name_plural = "Polls"
         ordering = ["-id"]
+
+    def is_active(self) -> bool:
+        return self.start_at <= now() <= self.end_at
 
     def clean(self):
         overlapping = Poll.objects.filter(

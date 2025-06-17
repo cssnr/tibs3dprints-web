@@ -6,7 +6,7 @@ from functools import wraps
 import httpx
 from decouple import config
 from django.conf import settings
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
@@ -176,16 +176,10 @@ def poll_current_view(request):
     """
     logger.debug("poll_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("-" * 20)
-    poll = (
-        Poll.objects.prefetch_related("choice_set")
-        .filter(start_at__lte=now(), end_at__gt=now())
-        .order_by("start_at")
-        .first()
-    )
-    if not poll:
-        # return JsonResponse({})
-        return JsonResponse(None, safe=False)
+    poll = Poll.objects.get_active()
     logger.debug("poll: %s", poll)
+    if not poll:
+        return JsonResponse(None, safe=False)
     data = {
         "poll": model_to_dict(poll),
         "choices": [serialize_choice(choice) for choice in poll.choice_set.all()],
@@ -209,14 +203,17 @@ def poll_vote_view(request):
         logger.debug("data: %s", data)
         poll = Poll.objects.get(id=data["poll"])
         logger.debug("poll: %s", poll)
+        if not poll.is_active():
+            return JsonResponse({"error": "Poll Not Active"}, status=400)
         choice = Choice.objects.get(id=data["choice"])
         logger.debug("choice: %s", choice)
         try:
             vote = Vote.objects.create(user=request.user, poll=poll, choice=choice)
             logger.debug("vote: %s", vote)
-            choice.votes = F("votes") + 1
-            choice.save(update_fields=["votes"])
-            choice.refresh_from_db()
+            with transaction.atomic():
+                choice.votes = F("votes") + 1
+                choice.save(update_fields=["votes"])
+                choice.refresh_from_db()
         except IntegrityError as error:
             logger.debug("error: %s", error)
             return JsonResponse({"error": "Already Voted"}, status=400)
