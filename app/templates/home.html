@@ -3,7 +3,9 @@
 {% load home_tags %}
 {% load static %}
 
-{% block head %}{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
 
 {% block body %}
 
@@ -24,7 +26,7 @@
     </ul>
   {% endif %}
 
-  <h2 class="mt-4">Administration</h2>
+  <h1 class="mt-4">Administration</h1>
   {% if not request.user.is_authenticated %}
     <p>
       <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info" role="button">
@@ -36,31 +38,56 @@
       <p>Welcome, <b>{{ request.user.get_name }}</b>.</p>
 
       <div class="row">
-        <div class="col-md-6 mb-3 mb-sm-0">
+        <div class="col-md-6 mb-3">
           <div class="card">
-            <h2 class="card-header"><i class="fa-solid fa-scale-unbalanced"></i> Polls</h2>
+            <h2 class="card-header"><i class="fa-solid fa-scale-unbalanced me-2"></i> Polls</h2>
             <div class="card-body">
               <h5 class="card-title">Poll Management</h5>
-              <p class="card-text">Manage, Create, Edit Polls, Choices, and Votes.</p>
-              <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
-              <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
-              <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
-              <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
+                <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
+                <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
+                <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="col-md-6">
+          </div> <!-- card -->
+        </div> <!-- col -->
+        <div class="col-md-6 mb-3">
           <div class="card">
-            <h2 class="card-header"><i class="fa-solid fa-users"></i> Users</h2>
+            <h2 class="card-header"><i class="fa-solid fa-users me-2"></i> Users</h2>
             <div class="card-body">
               <h5 class="card-title">User Management</h5>
-              <p class="card-text">View Users and Manage Beta Testers.</p>
-              <a href="{% url 'admin:home_tiktokuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
-              <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'admin:home_tiktokuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
+                <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </div> <!-- card -->
+        </div> <!-- col -->
+      </div> <!-- row -->
+      <div class="row">
+        <div class="col mb-3">
+          <div class="card">
+            <h2 class="card-header"><i class="fa-solid fa-up-right-from-square me-2"></i> Links</h2>
+            <div class="card-body">
+              <h5 class="card-title">External Links</h5>
+              <p class="card-text">Important Account Management Links.</p>
+              <ul class="list-unstyled fs-3">
+                <li>
+                  <i class="fa-solid fa-fire-flame-curved me-2" style="color: #fbc005"></i>
+                  <a href="https://console.firebase.google.com/project/tibs3dprints-android/overview" target="_blank">
+                    Firebase</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-google-play me-1" style="color: #317fec"></i>
+                  <a href="https://play.google.com/console/u/0/developers/8933468453824534870/app/4972284427872657417/app-dashboard" target="_blank">
+                    Play Console</a>
+                </li>
+              </ul>
+            </div>
+          </div> <!-- card -->
+        </div> <!-- col -->
+      </div> <!-- row -->
 
     {% else %}
       <p>Please contact the administrator if you think this is an error.</p>
