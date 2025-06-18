@@ -31,3 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
             decodeURIComponent(img2Url)
     }
 })
+
+document.getElementById('goBackBtn').addEventListener('click', (e) => {
+    console.log('goBackBtn: event:', e)
+    window.close()
+})

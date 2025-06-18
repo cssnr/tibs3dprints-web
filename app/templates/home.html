@@ -3,16 +3,18 @@
 {% load home_tags %}
 {% load static %}
 
-{% block head %}{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
 
 {% block body %}
 
   <h1>Tibs3DPrints Web</h1>
 
-  {% if request.user.is_superuser %}
+  {% if request.user.is_authenticated and request.user.is_superuser %}
     <p>
-      <a class="link-info text-decoration-none" href="{% url 'admin:home_tiktokuser_changelist' %}">
-        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
+      <a class="link-info text-decoration-none" href="{% url 'admin:index' %}">
+        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Visit Admin Interface
       </a>
     </p>
   {% else %}
@@ -24,7 +26,8 @@
     </ul>
   {% endif %}
 
-  <h2 class="mt-4">Administration</h2>
+  <h1 class="mt-4">Administration</h1>
+
   {% if not request.user.is_authenticated %}
     <p>
       <a href="{% url 'oauth:login' %}?next={{ request.path }}" class="btn btn-outline-info" role="button">
@@ -32,38 +35,99 @@
       </a>
     </p>
   {% else %}
-    {% if request.user.is_superuser %}
+    {% if not request.user.is_superuser %}
+      <p>Please contact the administrator if you think this is an error.</p>
+    {% else %}
       <p>Welcome, <b>{{ request.user.get_name }}</b>.</p>
 
       <div class="row">
-        <div class="col-md-6 mb-3 mb-sm-0">
+        <div class="col-md-6 mb-3">
           <div class="card">
-            <h2 class="card-header"><i class="fa-solid fa-scale-unbalanced"></i> Polls</h2>
+            <h2 class="card-header"><i class="fa-solid fa-scale-unbalanced me-2"></i> Polls</h2>
             <div class="card-body">
               <h5 class="card-title">Poll Management</h5>
-              <p class="card-text">Manage, Create, Edit Polls, Choices, and Votes.</p>
-              <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
-              <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
-              <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
-              <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
+                <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
+                <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
+                <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="col-md-6">
+          </div> <!-- card -->
+        </div> <!-- col -->
+        <div class="col-md-6 mb-3">
           <div class="card">
-            <h2 class="card-header"><i class="fa-solid fa-users"></i> Users</h2>
+            <h2 class="card-header"><i class="fa-solid fa-users me-2"></i> Users</h2>
             <div class="card-body">
               <h5 class="card-title">User Management</h5>
-              <p class="card-text">View Users and Manage Beta Testers.</p>
-              <a href="{% url 'admin:home_tiktokuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
-              <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'admin:home_tiktokuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
+                <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-    {% else %}
-      <p>Please contact the administrator if you think this is an error.</p>
+          </div> <!-- card -->
+        </div> <!-- col -->
+      </div> <!-- row -->
+      <div class="row">
+        <div class="col-lg-6 mb-3">
+          <div class="card">
+            <h2 class="card-header"><i class="fa-solid fa-up-right-from-square me-2"></i> Links</h2>
+            <div class="card-body">
+              <h5 class="card-title">External Links</h5>
+              <p class="card-text">Important Account Management Links.</p>
+              <ul class="list-unstyled fs-4">
+                <li>
+                  <i class="fa-solid fa-fire-flame-curved me-2" style="color: #fbc005"></i>
+                  <a href="https://console.firebase.google.com/project/tibs3dprints-android/messaging" target="_blank">
+                    Firebase Messaging</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-google-play me-1" style="color: #317fec"></i>
+                  <a href="https://play.google.com/console/u/0/developers/8933468453824534870/app/4972284427872657417/app-dashboard" target="_blank">
+                    Google Play Console</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-tiktok me-1"></i>
+                  <a href="https://developers.tiktok.com/app/7515612912439969848" target="_blank">
+                    TikTok Developer</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-shopify me-1" style="color: #95be46"></i>
+                  <a href="https://admin.shopify.com/store/67defa-4" target="_blank">
+                    Shopify Admin</a>
+                </li>
+              </ul>
+            </div>
+          </div> <!-- card -->
+        </div> <!-- col -->
+        <div class="col-lg-6 mb-3">
+          <div class="card">
+            <h2 class="card-header"><i class="fa-brands fa-android me-2"></i> Beta</h2>
+            <div class="card-body">
+              <h5 class="card-title">Android Beta Program</h5>
+              <p class="card-text">To Add a User Follow these Steps:</p>
+              <ol>
+                <li>Get their <b>Google E-Mail Address</b>.</li>
+                <li class="mb-3">
+                  Add them to the
+                  <a class="fw-bold" href="https://play.google.com/console/u/0/developers/8933468453824534870/app/4972284427872657417/tracks/4700539170636042847?tab=testers" target="_blank">
+                    Testers List</a>.
+                </li>
+                <li>
+                  Send the Join link:
+                  <button class="btn btn-link p-0 m-0 mb-1" data-clipboard-text="https://play.google.com/apps/testing/org.cssnr.tibs3dprints">
+                    Copy Here</button>
+                </li>
+                <li>
+                  Send the Install link:
+                  <button class="btn btn-link p-0 m-0 mb-1" data-clipboard-text="https://play.google.com/store/apps/details?id=org.cssnr.tibs3dprints">
+                    Copy Here</button>
+                </li>
+              </ol>
+            </div>
+          </div> <!-- card -->
+        </div> <!-- col -->
+      </div> <!-- row -->
     {% endif %}
   {% endif %}
 

@@ -38,7 +38,7 @@ if (timezone !== tz) {
 }
 
 if (typeof ClipboardJS !== 'undefined') {
-    const clipboard = new ClipboardJS('.clip')
+    const clipboard = new ClipboardJS('[data-clipboard-text]')
     clipboard.on('success', function (event) {
         // console.debug('clipboard.success:', event)
         const text = event.text.trim()
