@@ -13,8 +13,8 @@
 
   {% if request.user.is_authenticated and request.user.is_superuser %}
     <p>
-      <a class="link-info text-decoration-none" href="{% url 'admin:home_tiktokuser_changelist' %}">
-        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Manage Users
+      <a class="link-info text-decoration-none" href="{% url 'admin:index' %}">
+        <i class="fa-solid fa-plane-departure fa-lg me-2"></i> Visit Admin Interface
       </a>
     </p>
   {% else %}
@@ -75,16 +75,26 @@
             <div class="card-body">
               <h5 class="card-title">External Links</h5>
               <p class="card-text">Important Account Management Links.</p>
-              <ul class="list-unstyled fs-3">
+              <ul class="list-unstyled fs-4">
                 <li>
                   <i class="fa-solid fa-fire-flame-curved me-2" style="color: #fbc005"></i>
-                  <a href="https://console.firebase.google.com/project/tibs3dprints-android/overview" target="_blank">
-                    Firebase</a>
+                  <a href="https://console.firebase.google.com/project/tibs3dprints-android/messaging" target="_blank">
+                    Firebase Messaging</a>
                 </li>
                 <li>
                   <i class="fa-brands fa-google-play me-1" style="color: #317fec"></i>
                   <a href="https://play.google.com/console/u/0/developers/8933468453824534870/app/4972284427872657417/app-dashboard" target="_blank">
-                    Play Console</a>
+                    Google Play Console</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-tiktok me-1"></i>
+                  <a href="https://developers.tiktok.com/app/7515612912439969848" target="_blank">
+                    TikTok Developer</a>
+                </li>
+                <li>
+                  <i class="fa-brands fa-shopify me-1" style="color: #95be46"></i>
+                  <a href="https://admin.shopify.com/store/67defa-4" target="_blank">
+                    Shopify Admin</a>
                 </li>
               </ul>
             </div>
