@@ -1,0 +1,9 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n %}
+
+{% block submit-row %}
+  {{ block.super }}
+  {% if opts.model_name == 'poll' %}
+    <input type="button" id="previewPoll" value="{% trans 'Preview' %}" name="_preview" />
+  {% endif %}
+{% endblock %}

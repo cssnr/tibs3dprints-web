@@ -68,3 +68,9 @@ def google_verify(request: HttpRequest) -> bool:
     except Exception as error:
         logger.exception(error)
         return False
+
+
+def poll_preview_view(request):
+    # View: /preview/poll/
+    logger.debug("poll_preview_view: %s - %s", request.method, request.META["PATH_INFO"])
+    return render(request, "previews/poll.html")
