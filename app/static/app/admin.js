@@ -32,8 +32,8 @@ document.getElementById('previewPoll').addEventListener('click', (e) => {
 
     const filesToRead = []
 
-    if (fileEl1.files.length > 0) filesToRead.push(fileEl1.files[0])
-    if (fileEl2.files.length > 0) filesToRead.push(fileEl2.files[0])
+    if (fileEl1?.files.length > 0) filesToRead.push(fileEl1.files[0])
+    if (fileEl2?.files.length > 0) filesToRead.push(fileEl2.files[0])
 
     console.log('filesToRead:', filesToRead)
 
@@ -46,6 +46,6 @@ document.getElementById('previewPoll').addEventListener('click', (e) => {
     window.open(
         `/preview/poll/?${dataQueryString}&${fileQueryString}`,
         '_blank',
-        'width=380,height=600,resizable=yes'
+        'width=400,height=680,resizable=yes'
     )
 })
