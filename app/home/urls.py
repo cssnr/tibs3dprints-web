@@ -8,4 +8,5 @@ app_name = "home"
 urlpatterns = [
     path("", views.home_view, name="index"),
     path("beta/", views.beta_view, name="beta"),
+    path("preview/poll/", views.poll_preview_view, name="preview-poll"),
 ]
