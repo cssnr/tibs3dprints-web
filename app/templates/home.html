@@ -34,12 +34,34 @@
   {% else %}
     {% if request.user.is_superuser %}
       <p>Welcome, <b>{{ request.user.get_name }}</b>.</p>
-      <p>From here you can manage your application.</p>
-      <ul>
-        <li><a href="{% url 'admin:index' %}">Admin Index</a></li>
-        <li><a href="{% url 'admin:home_tiktokuser_changelist' %}">User Management</a></li>
-        <li><a href="{% url 'admin:home_betauser_changelist' %}">Beta Testers</a></li>
-      </ul>
+
+      <div class="row">
+        <div class="col-md-6 mb-3 mb-sm-0">
+          <div class="card">
+            <h2 class="card-header"><i class="fa-solid fa-scale-unbalanced"></i> Polls</h2>
+            <div class="card-body">
+              <h5 class="card-title">Poll Management</h5>
+              <p class="card-text">Manage, Create, Edit Polls, Choices, and Votes.</p>
+              <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
+              <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
+              <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
+              <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <h2 class="card-header"><i class="fa-solid fa-users"></i> Users</h2>
+            <div class="card-body">
+              <h5 class="card-title">User Management</h5>
+              <p class="card-text">View Users and Manage Beta Testers.</p>
+              <a href="{% url 'admin:home_tiktokuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
+              <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
     {% else %}
       <p>Please contact the administrator if you think this is an error.</p>
     {% endif %}
