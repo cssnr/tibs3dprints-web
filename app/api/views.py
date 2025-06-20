@@ -1,24 +1,32 @@
+import base64
 import json
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
+from secrets import randbelow
 
+import css_inline
 import httpx
 from decouple import config
 from django.conf import settings
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from home.models import Choice, Poll, TikTokUser, Vote
 from home.tasks import send_discord
+from home.views import verify_email_code
 
 
 logger = logging.getLogger("app")
-# cache_seconds = 60 * 60 * 4
 
 
 def tiktok_auth_required(view_func):
@@ -131,9 +139,7 @@ def auth_view(request):
 
 
 def get_access_token(code: str, code_verifier: str) -> dict:
-    """
-    Post OAuth code and Return access_token
-    """
+    # Post OAuth code and Return access_token
     url = "https://open.tiktokapis.com/v2/oauth/token/"
     data = {
         "client_key": config("TIKTOK_CLIENT_KEY"),
@@ -153,9 +159,7 @@ def get_access_token(code: str, code_verifier: str) -> dict:
 
 
 def get_user_profile(access_token: str) -> dict:
-    """
-    Get Profile for Authenticated User
-    """
+    # Get Profile for Authenticated User
     url = "https://open.tiktokapis.com/v2/user/info/"
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"fields": "open_id,union_id,avatar_url,display_name"}
@@ -174,6 +178,7 @@ def poll_current_view(request):
     View  /api/poll/current/
     """
     logger.debug("poll_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("tiktok_auth_required: %s", request.user)
     logger.debug("-" * 20)
     poll = Poll.objects.get_active()
     logger.debug("poll: %s", poll)
@@ -195,8 +200,8 @@ def poll_vote_view(request):
     View  /api/poll/vote/
     """
     logger.debug("poll_vote_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("tiktok_auth_required: %s", request.user)
     logger.debug("-" * 20)
-    logger.debug("user: %s", request.user)
     try:
         data = json.loads(request.body.decode("utf-8"))
         logger.debug("data: %s", data)
@@ -241,3 +246,82 @@ def serialize_vote(vote):
         "notify_on_result": vote.notify_on_result,
         "voted_at": vote.voted_at.isoformat() if vote.voted_at else None,
     }
+
+
+@csrf_exempt
+@tiktok_auth_required
+@require_http_methods(["POST"])
+def email_edit_view(request):
+    """
+    View  /api/email/edit/
+    """
+    logger.debug("email_edit_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("tiktok_auth_required: %s", request.user)
+    logger.debug("-" * 20)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        logger.debug("data: %s", data)
+        try:
+            validate_email(data["email"])
+        except ValidationError as e:
+            print("bad email, details:", e)
+            return JsonResponse({"error": "Invaild E-Mail Address"}, status=400)
+
+        if request.user.email_address == data["email"]:
+            return JsonResponse({"error": "E-Mail Not Changed"}, status=400)
+
+        request.user.email_address = data["email"]
+        request.user.email_verified = False
+        request.user.save()
+
+        send_verify_email(request, data["email"])
+
+        return JsonResponse({}, status=200)
+
+    except Exception as error:
+        logger.error(error)
+        return JsonResponse({"error": str(error)}, status=500)
+
+
+@csrf_exempt
+@tiktok_auth_required
+@require_http_methods(["POST"])
+def email_verify_view(request):
+    """
+    View  /api/email/verify/
+    """
+    logger.debug("email_verify_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("tiktok_auth_required: %s", request.user)
+    logger.debug("-" * 20)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        logger.debug("data: %s", data)
+
+        verified, message = verify_email_code(data["email"], data["code"])
+        logger.debug("verified: %s - %s", verified, message)
+
+        return JsonResponse({"verified": verified, "message": message}, status=200)
+
+    except Exception as error:
+        logger.error(error)
+        return JsonResponse({"error": str(error)}, status=500)
+
+
+def send_verify_email(request, email_address, ttl=3600):
+    logger.debug("send_verify_email: %s", email_address)
+    code = randbelow(9000) + 1000
+    logger.debug("code: %s", code)
+    cache.set(email_address, code, ttl)
+
+    json_string = json.dumps({"code": code, "email": email_address})
+    base64_str = base64.urlsafe_b64encode(json_string.encode("utf-8")).decode("utf-8")
+
+    context = {"code": code, "base64_str": base64_str, "ttl": ttl}
+    send_mail(
+        subject="Tibs3DPrints E-Mail Verification",
+        message=render_to_string("email/contact.plain", context, request),
+        from_email=settings.EMAIL_FROM_USER,
+        recipient_list=[email_address],
+        fail_silently=False,
+        html_message=css_inline.inline(render_to_string("email/verify.html", context, request)),
+    )
