@@ -96,7 +96,7 @@ class Poll(models.Model):
 class Choice(models.Model):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     name = models.CharField(max_length=200, verbose_name="Name")
-    file = models.FileField(upload_to=".", verbose_name="Image")
+    file = models.FileField(upload_to="choice/%Y/%m/", verbose_name="Image")
     votes = models.IntegerField(default=0, verbose_name="Votes")
 
     def __str__(self):
