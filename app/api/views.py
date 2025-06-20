@@ -1,9 +1,9 @@
 import base64
 import json
 import logging
-import random
 from datetime import datetime, timedelta
 from functools import wraps
+from secrets import randbelow
 
 import css_inline
 import httpx
@@ -309,7 +309,7 @@ def email_verify_view(request):
 
 def send_verify_email(request, email_address, ttl=3600):
     logger.debug("send_verify_email: %s", email_address)
-    code = random.randint(1000, 9999)
+    code = randbelow(9000) + 1000
     logger.debug("code: %s", code)
     cache.set(email_address, code, ttl)
 
