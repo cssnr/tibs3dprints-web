@@ -4,6 +4,7 @@
 {% block title %}Tibs3DPrints E-Mail Verification{% endblock %}
 
 {% block body %}
+  {% url_full_kwarg 'home:verify' 'base64_str' base64_str as verify_url %}
 
   <p>Verification Code: {{ code }}</p>
 
@@ -15,7 +16,7 @@
           <tbody>
           <tr>
             <td>
-              <a href="{% url_full_kwarg 'home:verify' 'base64_str' base64_str %}" target="_blank">{{ code }}</a>
+              <a href="{{ verify_url }}" target="_blank">{{ code }}</a>
             </td>
           </tr>
           </tbody>
@@ -28,8 +29,8 @@
   <p>The code is valid for {% sec_to_human ttl %}.</p>
   <p>If the above link or code does not work try pasting this into your browser:</p>
   <p>
-    <a href="{% url_full_kwarg 'home:verify' 'base64_str' base64_str %}">
-      {% url_full_kwarg 'home:verify' 'base64_str' base64_str %}</a>
+    <a href="{{ verify_url }}">
+      {{ verify_url }}</a>
   </p>
 
 {% endblock %}

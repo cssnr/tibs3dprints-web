@@ -3,10 +3,11 @@ import logging
 from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
-from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+
+from home.tasks import flush_template_cache
 
 
 logger = logging.getLogger("app")
@@ -20,8 +21,7 @@ def health_check(request):
 @require_http_methods(["POST"])
 def flush_cache_view(request):
     logger.debug("flush_cache_view")
-    # flush_template_cache.delay()
-    cache.delete_pattern("template.cache.*")
+    flush_template_cache.delay()
     messages.success(request, "Cache flush success.")
     return HttpResponse(status=204)
 

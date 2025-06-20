@@ -11,18 +11,18 @@ from decouple import config
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from home.models import Choice, Poll, TikTokUser, Vote
-from home.tasks import send_discord
+from home.tasks import send_discord, send_mail_task
 from home.views import verify_email_code
 
 
@@ -88,8 +88,8 @@ def api_view(request):
     return HttpResponse("Online.")
 
 
-@require_http_methods(["POST"])
 @csrf_exempt
+@require_http_methods(["POST"])
 def auth_view(request):
     """
     View  /api/auth/
@@ -173,6 +173,7 @@ def get_user_profile(access_token: str) -> dict:
 
 @csrf_exempt
 @tiktok_auth_required
+@cache_page(60 * 5, key_prefix="poll_view")
 def poll_current_view(request):
     """
     View  /api/poll/current/
@@ -276,7 +277,7 @@ def email_edit_view(request):
 
         send_verify_email(request, data["email"])
 
-        return JsonResponse({}, status=200)
+        return JsonResponse({"message": "Success"}, status=200)
 
     except Exception as error:
         logger.error(error)
@@ -317,11 +318,9 @@ def send_verify_email(request, email_address, ttl=3600):
     base64_str = base64.urlsafe_b64encode(json_string.encode("utf-8")).decode("utf-8")
 
     context = {"code": code, "base64_str": base64_str, "ttl": ttl}
-    send_mail(
+    send_mail_task.delay(
+        recipient_list=[email_address],
         subject="Tibs3DPrints E-Mail Verification",
         message=render_to_string("email/contact.plain", context, request),
-        from_email=settings.EMAIL_FROM_USER,
-        recipient_list=[email_address],
-        fail_silently=False,
         html_message=css_inline.inline(render_to_string("email/verify.html", context, request)),
     )

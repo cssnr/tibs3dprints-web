@@ -120,22 +120,22 @@ services:
     networks:
       - internal
 
-  #worker:
-  #  image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
-  #  environment: *environment
-  #  command: "celery -A project worker -l INFO -c 2"
-  #  deploy:
-  #    replicas: 1
-  #    resources:
-  #      limits:
-  #        cpus: "2.0"
-  #        memory: 256M
-  #  #volumes:
-  #  #  - data_dir:/data
-  #  depends_on:
-  #    - redis
-  #  networks:
-  #    - internal
+  worker:
+    image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
+    environment: *environment
+    command: "celery -A project worker -l INFO -c 2"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    #volumes:
+    #  - data_dir:/data
+    depends_on:
+      - redis
+    networks:
+      - internal
 
   #beat:
   #  image: ghcr.io/cssnr/tibs3dprints-web-app:${VERSION:-latest}
