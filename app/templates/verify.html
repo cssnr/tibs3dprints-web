@@ -13,30 +13,37 @@
 {% block body %}
 
   <div class="d-flex align-items-center justify-content-center h-100">
-    <div class="">
 
       <div class="card">
-        <h2 class="card-header">E-Mail Verification</h2>
+        <div class="card-header d-flex flex-row justify-content-center align-items-center">
+          <img alt="Logo" class="my-auto rounded rounded-2 me-4" width="64" height="64" src="{% static 'images/apple-touch-icon.png' %}">
+          <div>
+            <h2>Tibs3DPrints</h2>
+            <h5>E-Mail Verification</h5>
+          </div>
+        </div> <!-- card-header -->
         <div class="card-body">
-{#          <h5 class="card-title">Special title treatment</h5>#}
           <p class="card-text">
-            Status:
-            {% if verified %}
-              <span class="text-success">{{ message }}</span>
-            {% else %}
-              <span class="text-danger">{{ message }}</span>
-            {% endif %}
-          </p>
-          <p>
             E-Mail:
             {% if email %}<a href="mailto:{{ email }}">{{ email }}</a>{% endif %}
           </p>
-{#          <a href="#" class="btn btn-primary">Go somewhere</a>#}
+          <p class="card-text">
+            Status:
+            {% if verified %}
+              <span class="text-success fw-bold">{{ message }}</span>
+            {% else %}
+              <span class="text-danger fw-bold">{{ message }}</span>
+            {% endif %}
+          </p>
+        </div> <!-- card-body -->
+        <div class="card-footer text-body-secondary text-center">
+          <a href="https://tibs3dprints.com/">Website</a> |
+          <a href="https://www.tiktok.com/@tibby216">TikTok</a> |
+          <a href="https://www.youtube.com/@Tibs3DPrints">YouTube</a>
         </div>
-      </div>
+      </div> <!-- card-footer -->
 
-    </div>
-  </div>
+  </div> <!-- d-flex -->
 
 {% endblock %} <!-- body -->
 
