@@ -3,6 +3,7 @@
 celery>=5,<6
 channels[daphne]<5
 channels-redis<5
+css_inline
 django>=5,<6
 django-celery-beat<3
 django-cors-headers<5

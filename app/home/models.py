@@ -14,6 +14,7 @@ class TikTokUser(models.Model):
     first_name = models.CharField(blank=True, max_length=255)
     last_name = models.CharField(blank=True, max_length=255)
     email_address = models.EmailField(blank=True)
+    email_verified = models.BooleanField(default=False)
 
     open_id = models.CharField(blank=True, max_length=255)
     access_token = models.CharField(blank=True, max_length=255)

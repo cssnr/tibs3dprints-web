@@ -1,27 +1,33 @@
+import base64
+import json
 import logging
+from typing import Tuple
 
 import httpx
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
 
 from .forms import BetaForm
-from .models import BetaUser
+from .models import BetaUser, TikTokUser
 
 
 logger = logging.getLogger("app")
 
 
 def home_view(request):
-    # View: /
+    """
+    View  /
+    """
     logger.debug("home_view: %s - %s", request.method, request.META["PATH_INFO"])
     return render(request, "home.html")
 
 
-@require_http_methods(["GET", "POST"])
 def beta_view(request):
-    # View: /beta/
+    """
+    View  /beta/
+    """
     logger.debug("beta_view: %s - %s", request.method, request.META["PATH_INFO"])
     if request.method == "GET":
         return render(request, "beta.html")
@@ -51,6 +57,56 @@ def beta_view(request):
     except Exception as error:
         logger.exception(error)
         return JsonResponse({"error": str(error)}, status=400)
+
+
+def verify_view(request, base64_str):
+    """
+    View  /verify/:base64_str/
+    """
+    logger.debug("verify_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("-" * 20)
+    context = {"verified": False, "message": "Unknown"}
+    try:
+        logger.debug("base64_str: %s", base64_str)
+        decoded_string = base64.urlsafe_b64decode(base64_str.encode("utf-8")).decode("utf-8")
+        logger.debug("decoded_string: %s", decoded_string)
+        data = json.loads(decoded_string)
+        logger.debug("data: %s", data)
+        context["email"] = data["email"]
+
+        verified, message = verify_email_code(data["email"], data["code"])
+        logger.debug("verified: %s - %s", verified, message)
+        context["verified"] = verified
+        context["message"] = message
+
+    except Exception as error:
+        logger.exception(error)
+
+    logger.debug("context: %s", context)
+    return render(request, "verify.html", context)
+
+
+def verify_email_code(email, code) -> Tuple[bool, str]:
+    logger.debug("verify_email_code [%s]: %s", code, email)
+    code_from_cache = cache.get(email)
+    logger.debug("code_from_cache: %s", code_from_cache)
+    if not code_from_cache:
+        logger.debug("1 - Code Expired")
+        return False, "Code Expired"
+    if code_from_cache != code:
+        logger.debug("2 - Code Invalid")
+        return False, "Code Invalid"
+    user = TikTokUser.objects.filter(email_address=email).first()
+    logger.debug("user: %s", user)
+    if not user:
+        logger.debug("3 - Email Invalid")
+        return False, "Email Invalid"
+    if user.email_verified:
+        logger.debug("4 - Already Verified")
+        return True, "Already Verified"
+    user.email_verified = True
+    user.save()
+    return True, "Success"
 
 
 def google_verify(request: HttpRequest) -> bool:
