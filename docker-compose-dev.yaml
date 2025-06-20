@@ -59,21 +59,21 @@ services:
     depends_on:
       - redis
 
-  #worker:
-  #  image: myapp-app:${VERSION:-latest}
-  #  env_file: settings.env
-  #  command: "watchmedo auto-restart -d /app -p '*.py' -R -- celery -A project worker -l INFO -c 4"
-  #  deploy:
-  #    replicas: 1
-  #    resources:
-  #      limits:
-  #        cpus: "2.0"
-  #        memory: 256M
-  #  volumes:
-  #    #- data_dir:/data
-  #    - ${APP_FILES:-./app}:/app
-  #  depends_on:
-  #    - redis
+  worker:
+    image: myapp-app:${VERSION:-latest}
+    env_file: settings.env
+    command: "watchmedo auto-restart -d /app -p '*.py' -R -- celery -A project worker -l INFO -c 4"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 256M
+    volumes:
+      #- data_dir:/data
+      - ${APP_FILES:-./app}:/app
+    depends_on:
+      - redis
 
   #beat:
   #  image: myapp-app:${VERSION:-latest}
