@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.timezone import now
@@ -7,31 +8,32 @@ from project.helpers import gen_auth
 from .managers import PollManager
 
 
-class TikTokUser(models.Model):
+class AppUser(AbstractBaseUser):
+    # User Fields
     id = models.AutoField(primary_key=True)
+    email = models.EmailField(blank=True, unique=True)
+    name = models.CharField(blank=True, max_length=255)
+    verified = models.BooleanField(default=False)
     authorization = models.CharField(default=gen_auth, max_length=255)
+    password = models.CharField(blank=True, max_length=255, editable=False)
 
-    first_name = models.CharField(blank=True, max_length=255)
-    last_name = models.CharField(blank=True, max_length=255)
-    email_address = models.EmailField(blank=True)
-    email_verified = models.BooleanField(default=False)
-
-    open_id = models.CharField(blank=True, max_length=255)
-    access_token = models.CharField(blank=True, max_length=255)
-    refresh_token = models.CharField(blank=True, max_length=255)
-    expires_in = models.DateTimeField(null=True)
-
+    # TikTok Fields
     display_name = models.CharField(blank=True, max_length=255)
     avatar_url = models.URLField(blank=True, max_length=510)
+    open_id = models.CharField(blank=True, max_length=255, editable=False)
+    access_token = models.CharField(blank=True, max_length=255, editable=False)
+    refresh_token = models.CharField(blank=True, max_length=255, editable=False)
+    expires_in = models.DateTimeField(null=True, editable=False)
 
+    # Meta Fields
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.display_name or self.open_id or "New User"
+        return self.name or self.email
 
     def __repr__(self):
-        return f"<id={self.id} name={self.display_name} open_id={self.open_id}"
+        return f"<id={self.id} name={self.name} email={self.email}"
 
     class Meta:
         verbose_name = "TikTok User"
@@ -112,7 +114,7 @@ class Choice(models.Model):
 
 
 class Vote(models.Model):
-    user = models.ForeignKey(TikTokUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
     notify_on_result = models.BooleanField(default=False)

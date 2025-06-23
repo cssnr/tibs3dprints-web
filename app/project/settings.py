@@ -38,7 +38,10 @@ USE_L10N = True
 # CELERY_RESULT_SERIALIZER = "json"
 # CELERY_TIMEZONE = config("TZ", "UTC")
 
-EMAIL_FROM_USER = config("EMAIL_FROM_USER")
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+DEFAULT_FROM_EMAIL = config("EMAIL_FROM_USER")
+
+EMAIL_FROM_USER = DEFAULT_FROM_EMAIL
 EMAIL_HOST = config("EMAIL_HOST")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
@@ -59,6 +62,7 @@ GOOGLE_SITE_PUBLIC = config("GOOGLE_SITE_PUBLIC")
 GOOGLE_SITE_SECRET = config("GOOGLE_SITE_SECRET")
 
 SITE_URL = config("SITE_URL", "http://localhost:8000")
+DEEP_URL = config("DEEP_URL", "https://app.tibs3dprints.com/app")
 CONTACT_FORM_TO_EMAIL = config("CONTACT_FORM_TO_EMAIL")
 DISCORD_WEBHOOK = config("DISCORD_WEBHOOK")
 DISCORD_INVITE = config("DISCORD_INVITE")
@@ -207,18 +211,10 @@ LOGGING = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 6}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 if DEBUG:

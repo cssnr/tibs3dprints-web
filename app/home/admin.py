@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BetaUser, Choice, Poll, TikTokUser, Vote
+from .models import AppUser, BetaUser, Choice, Poll, Vote
 
 
 admin.site.site_header = "Tibs3DPrints Administration"
@@ -25,26 +25,30 @@ def mark_as_added(modeladmin, request, queryset):
     queryset.update(added=True)
 
 
-@admin.register(TikTokUser)
-class TikTokUserAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "email_address", "created_at")
-    list_filter = ("display_name",)
-    search_fields = ("display_name",)
-    ordering = ("display_name",)
-    readonly_fields = (
+@admin.register(AppUser)
+class AppUserAdmin(admin.ModelAdmin):
+    list_display = (
+        "email",
+        "name",
         "display_name",
-        "authorization",
-        "open_id",
+        "verified",
+        "created_at",
+    )
+    list_filter = ("email",)
+    search_fields = ("email",)
+    # ordering = ("name",)
+    readonly_fields = (
+        "email",
+        "verified",
+        "name",
+        "display_name",
         "avatar_url",
         "updated_at",
         "created_at",
-        "access_token",
-        "refresh_token",
-        "expires_in",
     )
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
 
     def has_add_permission(self, request, obj=None):
         return False

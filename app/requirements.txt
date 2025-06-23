@@ -11,8 +11,10 @@ django-redis>=5,<6
 gunicorn
 httpx
 mysqlclient
+premailer
 #psycopg[binary]
 python-decouple
+segno
 sentry-sdk
 uvicorn[standard]
 

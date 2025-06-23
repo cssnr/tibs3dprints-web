@@ -4,8 +4,6 @@
 {% block title %}Tibs3DPrints E-Mail Verification{% endblock %}
 
 {% block body %}
-  {% url_full_kwarg 'home:verify' 'base64_str' base64_str as verify_url %}
-
   <p>Verification Code: {{ code }}</p>
 
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
@@ -16,7 +14,7 @@
           <tbody>
           <tr>
             <td>
-              <a href="{{ verify_url }}" target="_blank">{{ code }}</a>
+              <a href="{{ url }}" target="_blank">{{ code }}</a>
             </td>
           </tr>
           </tbody>
@@ -26,11 +24,12 @@
     </tbody>
   </table>
 
+  <img src="cid:{{ cid }}" width="120" height="120" alt="QR Code" moz-do-not-send="false">
+
   <p>The code is valid for {% sec_to_human ttl %}.</p>
   <p>If the above link or code does not work try pasting this into your browser:</p>
   <p>
-    <a href="{{ verify_url }}">
-      {{ verify_url }}</a>
+    <a href="{{ url }}">{{ url }}</a>
   </p>
 
 {% endblock %}

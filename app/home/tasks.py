@@ -1,11 +1,17 @@
+import io
 import logging
+from email.mime.image import MIMEImage
+from email.utils import make_msgid
 
 import httpx
+import segno
 from celery import shared_task
 from django.conf import settings
 from django.core import management
 from django.core.cache import cache
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
+from premailer import transform as inline_css
 
 
 logger = logging.getLogger("app")
@@ -64,3 +70,36 @@ def send_mail_task(recipient_list, subject, message, html_message, from_email=se
         fail_silently=False,
         html_message=html_message,
     )
+
+
+def generate_qr_code_bytes(data: str) -> bytes:
+    qr = segno.make(data)
+    buffer = io.BytesIO()
+    qr.save(buffer, kind="png")
+    return buffer.getvalue()
+
+
+@shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
+def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
+    logger.debug("send_verify_email: to_email: %s", to_email)
+    cid = make_msgid(domain="tibs3dprints.com")
+    context = {"code": code, "url": url, "ttl": ttl, "cid": cid[1:-1]}
+    logger.debug("context: %s", context)
+    plain = render_to_string("email/contact.plain", context)
+    html = inline_css(render_to_string("email/verify.html", context))
+    message = EmailMultiAlternatives(
+        subject="Tibs3DPrints E-Mail Verification",
+        body=plain,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[to_email],
+    )
+    message.attach_alternative(html, "text/html")
+    message.mixed_subtype = "related"
+
+    image = MIMEImage(generate_qr_code_bytes(url), name="qrcode.png")
+    image.add_header("Content-Disposition", "inline", filename="qrcode.png")
+    image.add_header("Content-ID", cid)
+    message.attach(image)
+
+    logger.debug("send_verify_email: message.send()")
+    message.send()

@@ -10,7 +10,7 @@ from django.http import HttpRequest, JsonResponse
 from django.shortcuts import render
 
 from .forms import BetaForm
-from .models import BetaUser, TikTokUser
+from .models import AppUser, BetaUser
 
 
 logger = logging.getLogger("app")
@@ -96,15 +96,15 @@ def verify_email_code(email, code) -> Tuple[bool, str]:
     if code_from_cache != code:
         logger.debug("2 - Code Invalid")
         return False, "Code Invalid"
-    user = TikTokUser.objects.filter(email_address=email).first()
+    user = AppUser.objects.filter(email=email).first()
     logger.debug("user: %s", user)
     if not user:
         logger.debug("3 - Email Invalid")
         return False, "Email Invalid"
-    if user.email_verified:
+    if user.verified:
         logger.debug("4 - Already Verified")
         return True, "Already Verified"
-    user.email_verified = True
+    user.verified = True
     user.save()
     return True, "Success"
 
