@@ -3,13 +3,12 @@ import logging
 from email.mime.image import MIMEImage
 from email.utils import make_msgid
 
-import httpx
 import segno
 from celery import shared_task
 from django.conf import settings
 from django.core import management
 from django.core.cache import cache
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from premailer import transform as inline_css
 
@@ -38,40 +37,6 @@ def clear_poll_cache():
     return cache.delete_pattern("*.poll_view.*")
 
 
-@shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
-def send_discord(message: dict, webhook=settings.DISCORD_WEBHOOK):
-    logger.debug("TASK - send_discord: message: %s", message)
-    logger.debug("webhook: %s", webhook)
-    data = {"content": message}
-    r = httpx.post(webhook, json=data, timeout=10)
-    logger.debug(r.status_code)
-    if not r.is_success:
-        logger.warning(r.content)
-        r.raise_for_status()
-    return r.status_code
-
-
-@shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
-def send_mail_task(recipient_list, subject, message, html_message, from_email=settings.DEFAULT_FROM_EMAIL):
-    """
-    :param recipient_list: list
-    :param subject: str
-    :param message: str
-    :param html_message: str
-    :param from_email: str optional
-    :return: django.core.mail.send_mail
-    """
-    logger.debug("TASK - send_mail_task: subject: %s", subject)
-    return send_mail(
-        subject=subject,
-        message=message,
-        from_email=from_email,
-        recipient_list=recipient_list,
-        fail_silently=False,
-        html_message=html_message,
-    )
-
-
 def generate_qr_code_bytes(data: str) -> bytes:
     qr = segno.make(data)
     buffer = io.BytesIO()
@@ -82,24 +47,42 @@ def generate_qr_code_bytes(data: str) -> bytes:
 @shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
 def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
     logger.debug("send_verify_email: to_email: %s", to_email)
-    cid = make_msgid(domain="tibs3dprints.com")
-    context = {"code": code, "url": url, "ttl": ttl, "cid": cid[1:-1]}
-    logger.debug("context: %s", context)
-    plain = render_to_string("email/contact.plain", context)
-    html = inline_css(render_to_string("email/verify.html", context))
-    message = EmailMultiAlternatives(
-        subject="Tibs3DPrints E-Mail Verification",
-        body=plain,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[to_email],
-    )
-    message.attach_alternative(html, "text/html")
-    message.mixed_subtype = "related"
+    try:
+        # key = f"email.send.{to_email}"
+        # quota = cache.get(key, 0)
+        # logger.debug("quota: %s - %s", quota, key)
+        # if quota >= 2:
+        #     return logger.warning("Quota Exceeded for: %s", to_email)
 
-    image = MIMEImage(generate_qr_code_bytes(url), name="qrcode.png")
-    image.add_header("Content-Disposition", "inline", filename="qrcode.png")
-    image.add_header("Content-ID", cid)
-    message.attach(image)
+        cid = make_msgid(domain="tibs3dprints.com")
+        context = {"code": code, "url": url, "ttl": ttl, "cid": cid[1:-1]}
+        logger.debug("context: %s", context)
+        plain = render_to_string("email/contact.plain", context)
+        html = inline_css(render_to_string("email/verify.html", context), disable_validation=True)
 
-    logger.debug("send_verify_email: message.send()")
-    message.send()
+        message = EmailMultiAlternatives(
+            subject="Tibs3DPrints E-Mail Verification",
+            body=plain,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[to_email],
+        )
+        message.attach_alternative(html, "text/html")
+        message.mixed_subtype = "related"
+
+        image = MIMEImage(generate_qr_code_bytes(url), name="qrcode.png")
+        image.add_header("Content-Disposition", "inline", filename="qrcode.png")
+        image.add_header("Content-ID", cid)
+        message.attach(image)
+
+        logger.debug("send_verify_email: message.send()")
+        message.send()
+
+        key = f"email.send.{to_email}"
+        try:
+            cache.incr(key)
+        except ValueError:
+            cache.set(key, 1, 600)
+        else:
+            cache.touch(key, 600)
+    except Exception as error:
+        logger.warning("send_verify_email: error: %s", error)

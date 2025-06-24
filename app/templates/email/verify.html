@@ -5,7 +5,10 @@
 
 {% block body %}
   <p>Verification Code: {{ code }}</p>
-
+  <p>
+    To complete the login process, either enter the code in-app, visit the link on your mobile phone,
+    or scan the QR code from your mobile phone.
+  </p>
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
     <tbody>
     <tr>
@@ -23,13 +26,11 @@
     </tr>
     </tbody>
   </table>
-
-  <img src="cid:{{ cid }}" width="120" height="120" alt="QR Code" moz-do-not-send="false">
-
   <p>The code is valid for {% sec_to_human ttl %}.</p>
-  <p>If the above link or code does not work try pasting this into your browser:</p>
+  <a href="{{ url }}" target="_blank"><img src="cid:{{ cid }}" alt="QR Code" width="120" height="120" border="0"></a>
+  <p>&nbsp;</p>
   <p>
+    If the above link or code does not work try visiting this link on your mobile phone:
     <a href="{{ url }}">{{ url }}</a>
   </p>
-
 {% endblock %}

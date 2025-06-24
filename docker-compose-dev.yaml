@@ -62,7 +62,7 @@ services:
   worker:
     image: myapp-app:${VERSION:-latest}
     env_file: settings.env
-    command: "watchmedo auto-restart -d /app -p '*.py' -R -- celery -A project worker -l INFO -c 4"
+    command: "watchmedo auto-restart -d /app -p '*.py;*.html' -R -- celery -A project worker -l INFO -c 4"
     deploy:
       replicas: 1
       resources:

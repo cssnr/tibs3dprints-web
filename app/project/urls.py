@@ -13,11 +13,12 @@ urlpatterns = [
     path("oauth/", include("oauth.urls")),
     re_path(r"^tiktok.*\.txt$", views.tiktok_verify_view),
     path(".well-known/assetlinks.json", views.dal_view),
-    path("flush-cache/", views.flush_cache_view, name="flush_cache"),
-    path("app-health-check/", views.health_check, name="health_check"),
+    path("flush-cache/", views.flush_cache_view, name="flush-cache"),
+    path("app-health-check/", views.health_check_view, name="health-check"),
     # path("flower/", RedirectView.as_view(url="/flower/"), name="flower"),
     # path("redis/", RedirectView.as_view(url="/redis/"), name="redis"),
     # path("phpmyadmin/", RedirectView.as_view(url="/phpmyadmin/"), name="phpmyadmin"),
+    path("preview/poll/", views.poll_preview_view, name="preview-poll"),
     path("admin/", admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

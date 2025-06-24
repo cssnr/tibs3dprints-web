@@ -13,7 +13,7 @@ from home.tasks import flush_template_cache
 logger = logging.getLogger("app")
 
 
-def health_check(request):
+def health_check_view(request):
     return HttpResponse("success", status=200)
 
 
@@ -78,3 +78,11 @@ def dal_view(request):
         }
     ]
     return JsonResponse(assetlinks, safe=False)
+
+
+def poll_preview_view(request):
+    """
+    View  /preview/poll/
+    """
+    logger.debug("poll_preview_view: %s - %s", request.method, request.META["PATH_INFO"])
+    return render(request, "previews/poll.html")
