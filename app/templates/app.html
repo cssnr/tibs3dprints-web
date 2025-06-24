@@ -1,0 +1,47 @@
+{% extends "main.html" %}
+{% block title %}App Deep Link{% endblock %}
+{% load home_tags %}
+{% load static %}
+{% load cache %}
+
+{% block head %}
+{#  <link rel="stylesheet" href="{% static 'css/verify.css' %}">#}
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block body %}
+
+  <div class="d-flex align-items-center justify-content-center h-100">
+
+      <div class="card" style="max-width: 600px;">
+        <div class="card-header d-flex flex-row justify-content-center align-items-center">
+          <img alt="Logo" class="my-auto rounded rounded-2 me-4" width="64" height="64" src="{% static 'images/apple-touch-icon.png' %}">
+          <div>
+            <h1>Tibs3DPrints Mobile App</h1>
+          </div>
+        </div> <!-- card-header -->
+        <div class="card-body">
+          <p class="card-text">
+            You visited a mobile application link; however, do not have the app installed.
+          </p>
+          <a href="https://play.google.com/store/apps/details?id=org.cssnr.tibs3dprints">
+            <img alt="Google Play" class="d-block m-auto img-fluid" width="400" height="128"
+              src="https://raw.githubusercontent.com/smashedr/repo-images/refs/heads/master/google/get-on-play-400.webp"></a>
+        </div> <!-- card-body -->
+        <div class="card-footer text-body-secondary text-center">
+          <a href="https://tibs3dprints.com/">Website</a> |
+          <a href="https://www.tiktok.com/@tibby216">TikTok</a> |
+          <a href="https://www.youtube.com/@Tibs3DPrints">YouTube</a>
+        </div>
+      </div> <!-- card-footer -->
+
+  </div> <!-- d-flex -->
+
+{% endblock %} <!-- body -->
+
+{% block footer %}{% endblock %}
+
+{% block tail %}
+  <script type="text/javascript" src="{% static 'js/verify.js' %}"></script>
+{% endblock %}

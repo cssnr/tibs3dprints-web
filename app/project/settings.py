@@ -6,8 +6,6 @@ from django.contrib.messages import constants as message_constants
 from sentry_sdk.integrations.django import DjangoIntegration
 
 
-# from celery.schedules import crontab
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", "False", bool)
@@ -33,17 +31,18 @@ TIME_ZONE = config("TZ", "UTC")
 USE_I18N = True
 USE_L10N = True
 
-# CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND")
-# CELERY_ACCEPT_CONTENT = ["application/json"]
-# CELERY_RESULT_SERIALIZER = "json"
-# CELERY_TIMEZONE = config("TZ", "UTC")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND")
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = config("TZ", "UTC")
 
-EMAIL_FROM_USER = config("EMAIL_FROM_USER")
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", 587, int)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", "False", bool)
-EMAIL_PORT = config("EMAIL_PORT", 587, int)
 
 DJANGO_REDIS_IGNORE_EXCEPTIONS = config("REDIS_IGNORE_EXCEPTIONS", True, bool)
 USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", "False", bool)
@@ -59,7 +58,8 @@ GOOGLE_SITE_PUBLIC = config("GOOGLE_SITE_PUBLIC")
 GOOGLE_SITE_SECRET = config("GOOGLE_SITE_SECRET")
 
 SITE_URL = config("SITE_URL", "http://localhost:8000")
-CONTACT_FORM_TO_EMAIL = config("CONTACT_FORM_TO_EMAIL")
+DEEP_URL = config("DEEP_URL", "https://app.tibs3dprints.com/app")
+
 DISCORD_WEBHOOK = config("DISCORD_WEBHOOK")
 DISCORD_INVITE = config("DISCORD_INVITE")
 
@@ -207,18 +207,10 @@ LOGGING = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 6}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 if DEBUG:
