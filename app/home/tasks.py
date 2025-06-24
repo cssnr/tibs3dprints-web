@@ -52,7 +52,7 @@ def send_discord(message: dict, webhook=settings.DISCORD_WEBHOOK):
 
 
 @shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
-def send_mail_task(recipient_list, subject, message, html_message, from_email=settings.EMAIL_FROM_USER):
+def send_mail_task(recipient_list, subject, message, html_message, from_email=settings.DEFAULT_FROM_EMAIL):
     """
     :param recipient_list: list
     :param subject: str

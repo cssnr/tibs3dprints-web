@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from secrets import randbelow
+from typing import Tuple
 from urllib import parse
 
 import httpx
@@ -20,12 +21,13 @@ from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Poll, Vote
 from home.tasks import send_discord, send_verify_email
-from home.views import verify_email_code
 
 
 signer = TimestampSigner()
 
 logger = logging.getLogger("app")
+
+auth_code_ttl = 3600
 
 
 def auth_from_token(view_func):
@@ -110,9 +112,7 @@ def auth_view(request):
             user_data = profile.get("data", {}).get("user", {})
             logger.debug("user_data: %s", user_data)
 
-            user, created = AppUser.objects.get_or_create(
-                open_id=response["open_id"],
-            )
+            user, created = AppUser.objects.get_or_create(open_id=response["open_id"])
             logger.debug("user: %s", user)
             logger.debug("created: %s", created)
 
@@ -394,7 +394,7 @@ def auth_login_view(request):
         user = AppUser.objects.filter(email=data["email"]).first()
         logger.debug("user: %s", user)
         if not user:
-            return JsonResponse({"message": "Login Failed"}, status=401)
+            return JsonResponse({"message": "E-Mail Not Found"}, status=401)
 
         code = cache.get(f"auth.code.{user.id}")
         state = cache.get(f"auth.state.{user.id}")
@@ -403,15 +403,15 @@ def auth_login_view(request):
 
         if str(code) != str(data["code"]):
             logger.debug('code: "%s" != "%s"', code, data["code"])
-            return JsonResponse({"message": "Login Failed"}, status=401)
+            return JsonResponse({"message": "Invalid Code"}, status=401)
         if str(state) != str(data["state"]):
             logger.debug('state: "%s" != "%s"', state, data["state"])
-            return JsonResponse({"message": "Login Failed"}, status=401)
-
+            return JsonResponse({"message": "Invalid State"}, status=401)
+        user.verified = True
+        user.save()
         return JsonResponse(model_to_dict(user), status=200)
     except Exception as error:
         logger.error(error)
-        # return JsonResponse({"message": "Login Failed"}, status=401)
         return JsonResponse({"message": str(error)}, status=401)
 
 
@@ -428,16 +428,19 @@ def auth_start_view(request):
         data = json.loads(request.body.decode("utf-8"))
         logger.debug("data: %s", data)
         logger.debug("state: %s", data["state"])
+        if len(data["state"]) < 24:
+            return JsonResponse({"message": "Invalid State"}, status=400)
 
         user, created = AppUser.objects.get_or_create(email=data["email"])
         logger.debug("user: %s", user)
         logger.debug("created: %s", created)
         logger.debug("verified: %s", user.verified)
 
-        cache.set(f"auth.state.{user.id}", data["state"], 3600)
+        cache.set(f"auth.state.{user.id}", data["state"], auth_code_ttl)
         code = str(randbelow(9000) + 1000)
         logger.debug("code: %s", code)
-        cache.set(f"auth.code.{user.id}", code, 3600)
+        cache.set(f"auth.code.{user.id}", code, auth_code_ttl)
+
         # signature = get_signature(user_id=user.id, code=code)
         # logger.debug("signature: %s", signature)
         url = get_signed_url(code=code)
@@ -448,8 +451,7 @@ def auth_start_view(request):
         return JsonResponse({"message": "E-Mail Queued"}, status=200)
     except Exception as error:
         logger.error(error)
-        # return JsonResponse({"message": "Login Failed"}, status=401)
-        return JsonResponse({"message": str(error)}, status=401)
+        return JsonResponse({"message": str(error)}, status=500)
 
 
 # def generate_qr_code_bytes(data: str) -> bytes:
@@ -459,7 +461,7 @@ def auth_start_view(request):
 #     return buffer.getvalue()
 #
 #
-# def send_verify_email(user, code, url, ttl=3600):
+# def send_verify_email(user, code, url, ttl=auth_code_ttl):
 #     qr_image_bytes = generate_qr_code_bytes(url)
 #     cid = make_msgid(domain="tibs3dprints.com")
 #     logger.debug("cid: %s", cid)
@@ -510,3 +512,26 @@ def verify_signature(signature, max_age=600):
     data = json.loads(original)
     logger.debug("data: %s", data)
     return data
+
+
+def verify_email_code(email, code) -> Tuple[bool, str]:
+    logger.debug("verify_email_code [%s]: %s", code, email)
+    code_from_cache = cache.get(email)
+    logger.debug("code_from_cache: %s", code_from_cache)
+    if not code_from_cache:
+        logger.debug("1 - Code Expired")
+        return False, "Code Expired"
+    if code_from_cache != code:
+        logger.debug("2 - Code Invalid")
+        return False, "Code Invalid"
+    user = AppUser.objects.filter(email=email).first()
+    logger.debug("user: %s", user)
+    if not user:
+        logger.debug("3 - Email Invalid")
+        return False, "Email Invalid"
+    if user.verified:
+        logger.debug("4 - Already Verified")
+        return True, "Already Verified"
+    user.verified = True
+    user.save()
+    return True, "Success"
