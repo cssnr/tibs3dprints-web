@@ -12,7 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from premailer import transform as inline_css
 
-from project.constants import KEY_EMAIL_SEND
+from project.constants import KEY_AUTH_SEND
 
 
 logger = logging.getLogger("app")
@@ -79,7 +79,7 @@ def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
         logger.debug("send_verify_email: message.send()")
         message.send()
 
-        key = KEY_EMAIL_SEND.format(to_email)
+        key = KEY_AUTH_SEND.format(to_email)
         logger.debug("key: %s", key)
         try:
             cache.incr(key)

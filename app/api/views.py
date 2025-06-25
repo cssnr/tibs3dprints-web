@@ -21,7 +21,7 @@ from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Poll, Vote
 from home.tasks import send_verify_email
-from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_EMAIL_SEND
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_AUTH_SEND
 
 
 logger = logging.getLogger("app")
@@ -424,7 +424,7 @@ def auth_start_view(request):
         # logger.debug("created: %s", created)
         # logger.debug("verified: %s", user.verified)
 
-        quota = cache.get_or_set(KEY_EMAIL_SEND.format(email), 0, 600)
+        quota = cache.get_or_set(KEY_AUTH_SEND.format(email), 0, 600)
         logger.debug("quota: %s", quota)
         if quota >= 2:
             logger.warning("Quota Exceeded for: %s", email)
