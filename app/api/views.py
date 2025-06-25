@@ -21,6 +21,7 @@ from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Poll, Vote
 from home.tasks import send_verify_email
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_EMAIL_SEND
 
 
 logger = logging.getLogger("app")
@@ -362,8 +363,8 @@ def auth_login_view(request):
         logger.debug("-" * 20)
 
         email = data["email"]
-        code = cache.get(f"auth.{email}.code")
-        state = cache.get(f"auth.{email}.state")
+        code = cache.get(KEY_AUTH_CODE.format(email))
+        state = cache.get(KEY_AUTH_STATE.format(email))
         logger.debug("code: %s", code)
         logger.debug("state: %s", state)
 
@@ -385,6 +386,8 @@ def auth_login_view(request):
             logger.debug("verified: %s", email)
             user.verified = True
             user.save()
+        result = cache.delete_many([KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email)])
+        logger.debug("result: %s", result)
         return JsonResponse(model_to_dict(user), status=200)
     except Exception as error:
         logger.error(error)
@@ -421,8 +424,7 @@ def auth_start_view(request):
         # logger.debug("created: %s", created)
         # logger.debug("verified: %s", user.verified)
 
-        # quota = cache.get(f"email.send.{email}", 0)
-        quota = cache.get_or_set(f"email.send.{email}", 0, 600)
+        quota = cache.get_or_set(KEY_EMAIL_SEND.format(email), 0, 600)
         logger.debug("quota: %s", quota)
         if quota >= 2:
             logger.warning("Quota Exceeded for: %s", email)
@@ -430,8 +432,8 @@ def auth_start_view(request):
 
         code = str(randbelow(9000) + 1000)
         logger.debug("code: %s", code)
-        cache.set(f"auth.{email}.code", code, auth_code_ttl)
-        cache.set(f"auth.{email}.state", data["state"], auth_code_ttl)
+        cache.set(KEY_AUTH_CODE.format(email), code, auth_code_ttl)
+        cache.set(KEY_AUTH_STATE.format(email), data["state"], auth_code_ttl)
 
         # signature = get_signature(user_id=user.id, code=code)
         # logger.debug("signature: %s", signature)

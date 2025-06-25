@@ -12,6 +12,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from premailer import transform as inline_css
 
+from project.constants import KEY_EMAIL_SEND
+
 
 logger = logging.getLogger("app")
 
@@ -61,7 +63,7 @@ def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
         html = inline_css(render_to_string("email/verify.html", context), disable_validation=True)
 
         message = EmailMultiAlternatives(
-            subject="Tibs3DPrints E-Mail Verification",
+            subject="Tibs3DPrints Verification Code",
             body=plain,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[to_email],
@@ -77,7 +79,8 @@ def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
         logger.debug("send_verify_email: message.send()")
         message.send()
 
-        key = f"email.send.{to_email}"
+        key = KEY_EMAIL_SEND.format(to_email)
+        logger.debug("key: %s", key)
         try:
             cache.incr(key)
         except ValueError:
