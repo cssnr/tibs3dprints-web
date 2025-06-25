@@ -10,12 +10,12 @@ from .managers import PollManager
 
 class AppUser(AbstractBaseUser):
     # User Fields
-    id = models.AutoField(primary_key=True)
     email = models.EmailField(blank=True, unique=True)
     name = models.CharField(blank=True, max_length=255)
     verified = models.BooleanField(default=False)
     authorization = models.CharField(default=gen_auth, max_length=255)
     password = models.CharField(blank=True, max_length=255, editable=False)
+    points = models.IntegerField(default=0)
 
     # TikTok Fields
     display_name = models.CharField(blank=True, max_length=255)
@@ -36,13 +36,12 @@ class AppUser(AbstractBaseUser):
         return f"<id={self.id} name={self.name} email={self.email}"
 
     class Meta:
-        verbose_name = "TikTok User"
-        verbose_name_plural = "TikTok Users"
+        verbose_name = "App User"
+        verbose_name_plural = "App Users"
         ordering = ["-id"]
 
 
 class BetaUser(models.Model):
-    id = models.AutoField(primary_key=True)
     email = models.EmailField(verbose_name="E-Mail", unique=True)
     name = models.CharField(max_length=255, verbose_name="Name")
     details = models.TextField(verbose_name="Details", blank=True)
@@ -59,7 +58,6 @@ class BetaUser(models.Model):
 
 
 class Poll(models.Model):
-    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255, verbose_name="Title")
     question = models.TextField(verbose_name="Question")
     start_at = models.DateTimeField(verbose_name="Start Date")
@@ -100,6 +98,8 @@ class Choice(models.Model):
     name = models.CharField(max_length=200, verbose_name="Name")
     file = models.FileField(upload_to="choice/%Y/%m/", verbose_name="Image")
     votes = models.IntegerField(default=0, verbose_name="Votes")
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -110,7 +110,7 @@ class Choice(models.Model):
     class Meta:
         verbose_name = "Choice"
         verbose_name_plural = "Choices"
-        ordering = ["-id"]
+        ordering = ["-created_at"]
 
 
 class Vote(models.Model):
@@ -130,4 +130,22 @@ class Vote(models.Model):
         unique_together = ("user", "poll")
         verbose_name = "Vote"
         verbose_name_plural = "Votes"
-        ordering = ["-id"]
+        ordering = ["-voted_at"]
+
+
+class Point(models.Model):
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    points = models.IntegerField(default=0)
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "{} - {}".format(self.user.email, self.points)
+
+    def __repr__(self):
+        return "{} - {} - {}".format(self.user.email, self.points, self.reason[:32])
+
+    class Meta:
+        verbose_name = "Point"
+        verbose_name_plural = "Points"
+        ordering = ["-created_at"]

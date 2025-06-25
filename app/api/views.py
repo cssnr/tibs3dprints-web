@@ -3,11 +3,13 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from secrets import randbelow
+from typing import Union
 from urllib import parse
 
 import httpx
 from decouple import config
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -15,11 +17,12 @@ from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
+from django.utils.timezone import now
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from home.models import AppUser, Choice, Poll, Vote
+from home.models import AppUser, Choice, Point, Poll, Vote
 from home.tasks import send_verify_email
 from project.constants import KEY_AUTH_CODE, KEY_AUTH_SEND, KEY_AUTH_STATE
 
@@ -184,12 +187,12 @@ def poll_vote_view(request):
         choice = Choice.objects.get(id=data["choice"])
         logger.debug("choice: %s", choice)
         try:
-            vote = Vote.objects.create(user=request.user, poll=poll, choice=choice)
-            logger.debug("vote: %s", vote)
             with transaction.atomic():
-                choice.votes = F("votes") + 1
-                choice.save(update_fields=["votes"])
-                choice.refresh_from_db()
+                vote = Vote.objects.create(user=request.user, poll=poll, choice=choice)
+                logger.debug("vote: %s", vote)
+                point = Point.objects.create(user=request.user, points=10, reason=f"Voted on Poll {poll.title}")
+                logger.debug("point: %s", point)
+
         except IntegrityError as error:
             logger.debug("error: %s", error)
             return JsonResponse({"message": "Already Voted"}, status=400)
@@ -272,18 +275,22 @@ def serialize_vote(vote):
 
 @csrf_exempt
 @auth_from_token
-def auth_user_view(request):
+def user_current_view(request):
     """
-    View  /api/user/
+    View  /api/user/current/
     """
-    logger.debug("auth_user_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("user_current_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("auth_from_token: %s", request.user)
     logger.debug("-" * 20)
     try:
-        return JsonResponse(model_to_dict(request.user), status=200)
+        return JsonResponse(serialize_user(request.user), status=200)
     except Exception as error:
         logger.error(error)
         return JsonResponse({"message": str(error)}, status=401)
+
+
+def serialize_user(user: Union[AppUser, AnonymousUser]):
+    return model_to_dict(user, exclude=["id", "last_login"])
 
 
 # @csrf_exempt
@@ -361,7 +368,6 @@ def auth_login_view(request):
         logger.debug("data.code: %s", data["code"])
         logger.debug("data.state: %s", data["state"])
         logger.debug("-" * 20)
-
         email = data["email"]
         code = cache.get(KEY_AUTH_CODE.format(email))
         state = cache.get(KEY_AUTH_STATE.format(email))
@@ -382,13 +388,16 @@ def auth_login_view(request):
         if not user:
             return JsonResponse({"message": "Error Creating User"}, status=401)
 
+        fields_to_update = ["last_login"]
         if not user.verified:
-            logger.debug("verified: %s", email)
             user.verified = True
-            user.save()
+            fields_to_update.append("verified")
+        logger.debug("fields_to_update: %s", fields_to_update)
+        user.last_login = now()
+        user.save(update_fields=fields_to_update)
         result = cache.delete_many([KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email)])
-        logger.debug("result: %s", result)
-        return JsonResponse(model_to_dict(user), status=200)
+        logger.debug("cache.delete_many: %s", result)
+        return JsonResponse(serialize_user(user), status=200)
     except Exception as error:
         logger.error(error)
         return JsonResponse({"message": str(error)}, status=401)
