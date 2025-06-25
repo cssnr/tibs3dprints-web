@@ -47,8 +47,8 @@
             <div class="card-body">
               <h5 class="card-title">Poll Management</h5>
               <div class="d-flex flex-wrap gap-2">
-                <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
                 <a href="{% url 'admin:home_poll_add' %}" class="btn btn-success">Add</a>
+                <a href="{% url 'admin:home_poll_changelist' %}" class="btn btn-primary">Manage</a>
                 <a href="{% url 'admin:home_choice_changelist' %}" class="btn btn-info">Choices</a>
                 <a href="{% url 'admin:home_vote_changelist' %}" class="btn btn-info">Votes</a>
               </div>
@@ -61,7 +61,7 @@
             <div class="card-body">
               <h5 class="card-title">User Management</h5>
               <div class="d-flex flex-wrap gap-2">
-                <a href="{% url 'admin:home_appuser_changelist' %}" class="btn btn-primary">TikTok Users</a>
+                <a href="{% url 'admin:home_appuser_changelist' %}" class="btn btn-primary">App Users</a>
                 <a href="{% url 'admin:home_betauser_changelist' %}" class="btn btn-info">Beta Testers</a>
               </div>
             </div>

@@ -3,14 +3,14 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from secrets import randbelow
-from typing import Tuple
 from urllib import parse
 
 import httpx
 from decouple import config
 from django.conf import settings
 from django.core.cache import cache
-from django.core.signing import TimestampSigner
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.forms import model_to_dict
@@ -20,14 +20,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Poll, Vote
-from home.tasks import send_discord, send_verify_email
+from home.tasks import send_verify_email
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_SEND, KEY_AUTH_STATE
 
-
-signer = TimestampSigner()
 
 logger = logging.getLogger("app")
-
 auth_code_ttl = 3600
+
+# signer = TimestampSigner()
 
 
 def auth_from_token(view_func):
@@ -58,34 +58,6 @@ def api_view(request):
     """
     logger.debug("api_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("-" * 20)
-
-    try:
-        logger.debug("-" * 20 + "\n" + json.dumps(request.META) + "\n")
-    except:  # noqa: E722
-        logger.debug("*" * 20)
-        logger.debug(request.META)
-    logger.debug("-" * 20)
-
-    try:
-        logger.debug("-" * 20 + "\n" + request.body.decode("utf-8") + "\n")
-    except:  # noqa: E722
-        logger.debug("*" * 20)
-        logger.debug(request.body)
-    logger.debug("-" * 20)
-
-    try:
-        logger.debug(json.loads(request.body.decode("utf-8")))
-    except:  # noqa: E722
-        logger.debug("Unable to json.loads - request.body.decode()")
-    logger.debug("-" * 20)
-
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        content = {"content": f"```json\n{data}\n```"}
-        send_discord(content, settings.DISCORD_WEBHOOK)
-    except Exception as error:
-        logger.error(error)
-
     return HttpResponse("Online.")
 
 
@@ -277,32 +249,32 @@ def serialize_vote(vote):
 #         return JsonResponse({"message": str(error)}, status=500)
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def email_check_view(request):
-    """
-    View  /api/email/check/
-    """
-    logger.debug("email_edit_check: %s - %s", request.method, request.META["PATH_INFO"])
-    logger.debug("-" * 20)
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.debug("data: %s", data)
-        q = AppUser.objects.filter(email=data["email"])
-        if not q:
-            return JsonResponse({"message": "Available"}, status=200)
-        return JsonResponse({"message": "Unavailable"}, status=400)
-
-    except Exception as error:
-        logger.error(error)
-        return JsonResponse({"message": str(error)}, status=500)
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def email_check_view(request):
+#     """
+#     View  /api/email/check/
+#     """
+#     logger.debug("email_edit_check: %s - %s", request.method, request.META["PATH_INFO"])
+#     logger.debug("-" * 20)
+#     try:
+#         data = json.loads(request.body.decode("utf-8"))
+#         logger.debug("data: %s", data)
+#         q = AppUser.objects.filter(email=data["email"])
+#         if not q:
+#             return JsonResponse({"message": "Available"}, status=200)
+#         return JsonResponse({"message": "Unavailable"}, status=400)
+#
+#     except Exception as error:
+#         logger.error(error)
+#         return JsonResponse({"message": str(error)}, status=500)
 
 
 @csrf_exempt
 @auth_from_token
 def auth_user_view(request):
     """
-    View  /api/auth/user/
+    View  /api/user/
     """
     logger.debug("auth_user_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("auth_from_token: %s", request.user)
@@ -311,7 +283,7 @@ def auth_user_view(request):
         return JsonResponse(model_to_dict(request.user), status=200)
     except Exception as error:
         logger.error(error)
-        return JsonResponse({"message": str(error)}, status=500)
+        return JsonResponse({"message": str(error)}, status=401)
 
 
 # @csrf_exempt
@@ -349,28 +321,28 @@ def auth_user_view(request):
 #         return JsonResponse({"message": str(error)}, status=500)
 
 
-@csrf_exempt
-@auth_from_token
-@require_http_methods(["POST"])
-def email_verify_view(request):
-    """
-    View  /api/email/verify/
-    """
-    logger.debug("email_verify_view: %s - %s", request.method, request.META["PATH_INFO"])
-    logger.debug("auth_from_token: %s", request.user)
-    logger.debug("-" * 20)
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.debug("data: %s", data)
-
-        verified, message = verify_email_code(data["email"], data["code"])
-        logger.debug("verified: %s - %s", verified, message)
-
-        return JsonResponse({"verified": verified, "message": message}, status=200)
-
-    except Exception as error:
-        logger.error(error)
-        return JsonResponse({"message": str(error)}, status=500)
+# @csrf_exempt
+# @auth_from_token
+# @require_http_methods(["POST"])
+# def email_verify_view(request):
+#     """
+#     View  /api/email/verify/
+#     """
+#     logger.debug("email_verify_view: %s - %s", request.method, request.META["PATH_INFO"])
+#     logger.debug("auth_from_token: %s", request.user)
+#     logger.debug("-" * 20)
+#     try:
+#         data = json.loads(request.body.decode("utf-8"))
+#         logger.debug("data: %s", data)
+#
+#         verified, message = verify_email_code(data["email"], data["code"])
+#         logger.debug("verified: %s - %s", verified, message)
+#
+#         return JsonResponse({"verified": verified, "message": message}, status=200)
+#
+#     except Exception as error:
+#         logger.error(error)
+#         return JsonResponse({"message": str(error)}, status=500)
 
 
 @csrf_exempt
@@ -385,19 +357,14 @@ def auth_login_view(request):
     try:
         data = json.loads(request.body.decode("utf-8"))
         logger.debug("data: %s", data)
-        logger.debug("email: %s", data["email"])
-        logger.debug("code: %s", data["code"])
-        logger.debug("state: %s", data["state"])
+        logger.debug("data.email: %s", data["email"])
+        logger.debug("data.code: %s", data["code"])
+        logger.debug("data.state: %s", data["state"])
         logger.debug("-" * 20)
 
-        # user = get_object_or_404(AppUser, email=data["email"])
-        user = AppUser.objects.filter(email=data["email"]).first()
-        logger.debug("user: %s", user)
-        if not user:
-            return JsonResponse({"message": "E-Mail Not Found"}, status=401)
-
-        code = cache.get(f"auth.code.{user.id}")
-        state = cache.get(f"auth.state.{user.id}")
+        email = data["email"]
+        code = cache.get(KEY_AUTH_CODE.format(email))
+        state = cache.get(KEY_AUTH_STATE.format(email))
         logger.debug("code: %s", code)
         logger.debug("state: %s", state)
 
@@ -407,8 +374,20 @@ def auth_login_view(request):
         if str(state) != str(data["state"]):
             logger.debug('state: "%s" != "%s"', state, data["state"])
             return JsonResponse({"message": "Invalid State"}, status=401)
-        user.verified = True
-        user.save()
+
+        # user = get_object_or_404(AppUser, email=data["email"])
+        user, created = AppUser.objects.get_or_create(email=email)
+        logger.debug("user: %s", user)
+        logger.debug("created: %s", created)
+        if not user:
+            return JsonResponse({"message": "Error Creating User"}, status=401)
+
+        if not user.verified:
+            logger.debug("verified: %s", email)
+            user.verified = True
+            user.save()
+        result = cache.delete_many([KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email)])
+        logger.debug("result: %s", result)
         return JsonResponse(model_to_dict(user), status=200)
     except Exception as error:
         logger.error(error)
@@ -420,38 +399,60 @@ def auth_login_view(request):
 def auth_start_view(request):
     """
     View  /api/auth/start/
-    POST: email, state -> send code
+    POST: email, state -> send code email
     """
     logger.debug("auth_start_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("-" * 20)
     try:
         data = json.loads(request.body.decode("utf-8"))
         logger.debug("data: %s", data)
-        logger.debug("state: %s", data["state"])
-        if len(data["state"]) < 24:
+        state = data["state"]
+        logger.debug("state: %s", state)
+        email = data["email"]
+        logger.debug("email: %s", email)
+
+        if len(state) < 24:
             return JsonResponse({"message": "Invalid State"}, status=400)
+        try:
+            validate_email(email)
+        except ValidationError as e:
+            logger.debug("ValidationError: %s", e)
+            return JsonResponse({"message": "E-Mail Address Invalid"}, status=400)
 
-        user, created = AppUser.objects.get_or_create(email=data["email"])
-        logger.debug("user: %s", user)
-        logger.debug("created: %s", created)
-        logger.debug("verified: %s", user.verified)
+        # user, created = AppUser.objects.get_or_create(email=data["email"])
+        # logger.debug("user: %s", user)
+        # logger.debug("created: %s", created)
+        # logger.debug("verified: %s", user.verified)
 
-        cache.set(f"auth.state.{user.id}", data["state"], auth_code_ttl)
+        quota = cache.get_or_set(KEY_AUTH_SEND.format(email), 0, 600)
+        logger.debug("quota: %s", quota)
+        if quota >= 2:
+            logger.warning("Quota Exceeded for: %s", email)
+            return JsonResponse({"message": "Quota Exceeded."}, status=400)
+
         code = str(randbelow(9000) + 1000)
         logger.debug("code: %s", code)
-        cache.set(f"auth.code.{user.id}", code, auth_code_ttl)
+        cache.set(KEY_AUTH_CODE.format(email), code, auth_code_ttl)
+        cache.set(KEY_AUTH_STATE.format(email), data["state"], auth_code_ttl)
 
         # signature = get_signature(user_id=user.id, code=code)
         # logger.debug("signature: %s", signature)
         url = get_signed_url(code=code)
         logger.debug("url: %s", url)
 
-        send_verify_email.delay(user.email, code, url)
-
+        send_verify_email.delay(email, code, url)
         return JsonResponse({"message": "E-Mail Queued"}, status=200)
     except Exception as error:
         logger.error(error)
         return JsonResponse({"message": str(error)}, status=500)
+
+
+def get_signed_url(**kwargs) -> str:
+    logger.debug("get_signed_url: %s", kwargs)
+    encoded = parse.urlencode(kwargs)
+    logger.debug("encoded: %s", encoded)
+    url = f"{settings.DEEP_URL}/auth/local?{encoded}"
+    return url
 
 
 # def generate_qr_code_bytes(data: str) -> bytes:
@@ -492,46 +493,38 @@ def auth_start_view(request):
 #     logger.debug("DONE")
 
 
-def get_signed_url(**kwargs) -> str:
-    logger.debug("get_signed_url: %s", kwargs)
-    encoded = parse.urlencode(kwargs)
-    logger.debug("encoded: %s", encoded)
-    url = f"{settings.DEEP_URL}/auth/local?{encoded}"
-    return url
+# def get_signature(**kwargs):
+#     value = json.dumps(kwargs)
+#     signature = signer.sign(value)
+#     return signature
+#
+#
+# def verify_signature(signature, max_age=600):
+#     original = signer.unsign(signature, max_age=max_age)
+#     logger.debug("original: %s", original)
+#     data = json.loads(original)
+#     logger.debug("data: %s", data)
+#     return data
 
 
-def get_signature(**kwargs):
-    value = json.dumps(kwargs)
-    signature = signer.sign(value)
-    return signature
-
-
-def verify_signature(signature, max_age=600):
-    original = signer.unsign(signature, max_age=max_age)
-    logger.debug("original: %s", original)
-    data = json.loads(original)
-    logger.debug("data: %s", data)
-    return data
-
-
-def verify_email_code(email, code) -> Tuple[bool, str]:
-    logger.debug("verify_email_code [%s]: %s", code, email)
-    code_from_cache = cache.get(email)
-    logger.debug("code_from_cache: %s", code_from_cache)
-    if not code_from_cache:
-        logger.debug("1 - Code Expired")
-        return False, "Code Expired"
-    if code_from_cache != code:
-        logger.debug("2 - Code Invalid")
-        return False, "Code Invalid"
-    user = AppUser.objects.filter(email=email).first()
-    logger.debug("user: %s", user)
-    if not user:
-        logger.debug("3 - Email Invalid")
-        return False, "Email Invalid"
-    if user.verified:
-        logger.debug("4 - Already Verified")
-        return True, "Already Verified"
-    user.verified = True
-    user.save()
-    return True, "Success"
+# def verify_email_code(email, code) -> Tuple[bool, str]:
+#     logger.debug("verify_email_code [%s]: %s", code, email)
+#     code_from_cache = cache.get(email)
+#     logger.debug("code_from_cache: %s", code_from_cache)
+#     if not code_from_cache:
+#         logger.debug("1 - Code Expired")
+#         return False, "Code Expired"
+#     if code_from_cache != code:
+#         logger.debug("2 - Code Invalid")
+#         return False, "Code Invalid"
+#     user = AppUser.objects.filter(email=email).first()
+#     logger.debug("user: %s", user)
+#     if not user:
+#         logger.debug("3 - Email Invalid")
+#         return False, "Email Invalid"
+#     if user.verified:
+#         logger.debug("4 - Already Verified")
+#         return True, "Already Verified"
+#     user.verified = True
+#     user.save()
+#     return True, "Success"

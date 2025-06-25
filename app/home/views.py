@@ -105,11 +105,3 @@ def google_verify(request: HttpRequest) -> bool:
 #
 #     logger.debug("context: %s", context)
 #     return render(request, "verify.html", context)
-
-
-def poll_preview_view(request):
-    """
-    View  /preview/poll/
-    """
-    logger.debug("poll_preview_view: %s - %s", request.method, request.META["PATH_INFO"])
-    return render(request, "previews/poll.html")
