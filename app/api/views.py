@@ -14,7 +14,6 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import F
 from django.forms import model_to_dict
 from django.http import HttpResponse, JsonResponse
 from django.utils.timezone import now

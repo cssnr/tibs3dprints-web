@@ -38,19 +38,16 @@ def update_user_points_signal(sender, instance, created, **kwargs):
     logger.debug("SIGNAL - update_user_points_signal: created: %s", created)
     logger.debug("instance: %s", instance)
     logger.debug("instance.user: %s", instance.user)
-
     if created:
         instance.user.points += instance.points
-        logger.debug("instance.user.points: %s", instance.user.points)
         instance.user.save(update_fields=["points"])
 
 
 @receiver(post_save, sender=Vote)
-def vote_choice_increment_signal(sender, instance, **kwargs):
-    logger.debug("SIGNAL - vote_choice_increment_signal")
+def vote_choice_increment_signal(sender, instance, created, **kwargs):
+    logger.debug("SIGNAL - vote_choice_increment_signal: created: %s", created)
     logger.debug("instance: %s", instance)
     logger.debug("instance.choice: %s", instance.choice)
-
-    instance.choice.votes = F("votes") + 1
-    instance.choice.save(update_fields=["votes"])
-    logger.debug("instance.choice.votes: %s", instance.choice.votes)
+    if created:
+        instance.choice.votes = F("votes") + 1
+        instance.choice.save(update_fields=["votes"])
