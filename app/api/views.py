@@ -21,7 +21,7 @@ from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Poll, Vote
 from home.tasks import send_verify_email
-from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_AUTH_SEND
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_SEND, KEY_AUTH_STATE
 
 
 logger = logging.getLogger("app")
