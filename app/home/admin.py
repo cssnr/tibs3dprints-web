@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AppUser, BetaUser, Choice, Poll, Vote
+from .models import AppUser, BetaUser, Choice, Point, Poll, Vote
 
 
 admin.site.site_header = "Tibs3DPrints Administration"
@@ -30,9 +30,7 @@ class AppUserAdmin(admin.ModelAdmin):
     list_display = (
         "email",
         "name",
-        "display_name",
         "verified",
-        "created_at",
     )
     list_filter = ("email",)
     search_fields = ("email",)
@@ -43,12 +41,15 @@ class AppUserAdmin(admin.ModelAdmin):
         "name",
         "display_name",
         "avatar_url",
+        "points",
+        "last_login",
         "updated_at",
         "created_at",
     )
+    exclude = ("authorization",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -122,6 +123,30 @@ class VoteAdmin(admin.ModelAdmin):
         "choice",
         "voted_at",
         "notify_on_result",
+    )
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Point)
+class PointAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "points",
+        "reason",
+    )
+    list_filter = (
+        "user",
+        "points",
+    )
+    readonly_fields = (
+        "user",
+        "points",
+        "reason",
     )
 
     def has_delete_permission(self, request, obj=None):
