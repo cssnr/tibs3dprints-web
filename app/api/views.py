@@ -288,6 +288,34 @@ def user_current_view(request):
         return JsonResponse({"message": str(error)}, status=401)
 
 
+@csrf_exempt
+@auth_from_token
+def user_edit_view(request):
+    """
+    View  /api/user/edit/
+    """
+    logger.debug("user_edit_view: %s - %s", request.method, request.META["PATH_INFO"])
+    logger.debug("auth_from_token: %s", request.user)
+    logger.debug("-" * 20)
+    user_editables = ["name"]
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        logger.debug("data: %s", data)
+        update_fields = []
+        for key, value in data.items():
+            if key in user_editables and value is not None:
+                logger.debug("setattr: %s - %s", key, value)
+                setattr(request.user, key, value)
+                update_fields.append(key)
+        # if not update_fields:
+        #     return JsonResponse({"message": "Not Changed"}, status=304)
+        request.user.save(update_fields=update_fields)
+        return JsonResponse(serialize_user(request.user), status=200)
+    except Exception as error:
+        logger.error(error)
+        return JsonResponse({"message": str(error)}, status=500)
+
+
 def serialize_user(user: Union[AppUser, AnonymousUser]):
     return model_to_dict(user, exclude=["id", "last_login"])
 

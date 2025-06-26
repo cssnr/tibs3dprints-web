@@ -10,6 +10,7 @@ urlpatterns = [
     path("poll/current/", views.poll_current_view, name="poll-current"),
     path("poll/vote/", views.poll_vote_view, name="poll-vote"),
     path("user/current/", views.user_current_view, name="user-current"),
+    path("user/edit/", views.user_edit_view, name="user-edit"),
     path("auth/start/", views.auth_start_view, name="auth-start"),
     path("auth/login/", views.auth_login_view, name="auth-login"),
     # path("auth/register/", views.auth_register_view, name="auth-register"),
