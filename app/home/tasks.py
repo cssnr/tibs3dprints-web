@@ -10,9 +10,11 @@ from django.core import management
 from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from ipwhois.asn import IPASN
+from ipwhois.net import Net
 from premailer import transform as inline_css
 
-from project.constants import KEY_AUTH_SEND
+from project.constants import KEY_SEND_EMAIL, KEY_SEND_IP
 
 
 logger = logging.getLogger("app")
@@ -39,25 +41,12 @@ def clear_poll_cache():
     return cache.delete_pattern("*.poll_view.*")
 
 
-def generate_qr_code_bytes(data: str) -> bytes:
-    qr = segno.make(data)
-    buffer = io.BytesIO()
-    qr.save(buffer, kind="png")
-    return buffer.getvalue()
-
-
 @shared_task(autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 60}, rate_limit="10/m")
-def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
-    logger.debug("send_verify_email: to_email: %s", to_email)
+def send_verify_email(to_email: str, code: str, url: str, ip: str, ttl=3600):
+    logger.debug("TASK - send_verify_email: to_email: %s", to_email)
     try:
-        # key = f"email.send.{to_email}"
-        # quota = cache.get(key, 0)
-        # logger.debug("quota: %s - %s", quota, key)
-        # if quota >= 2:
-        #     return logger.warning("Quota Exceeded for: %s", to_email)
-
         cid = make_msgid(domain="tibs3dprints.com")
-        context = {"code": code, "url": url, "ttl": ttl, "cid": cid[1:-1]}
+        context = {"code": code, "url": url, "ip": ip, "ttl": ttl, "cid": cid[1:-1], "whois": lookup_ip(ip)}
         logger.debug("context: %s", context)
         plain = render_to_string("email/contact.plain", context)
         html = inline_css(render_to_string("email/verify.html", context), disable_validation=True)
@@ -70,22 +59,43 @@ def send_verify_email(to_email: str, code: str, url: str, ttl=3600):
         )
         message.attach_alternative(html, "text/html")
         message.mixed_subtype = "related"
-
         image = MIMEImage(generate_qr_code_bytes(url), name="qrcode.png")
         image.add_header("Content-Disposition", "inline", filename="qrcode.png")
         image.add_header("Content-ID", cid)
         message.attach(image)
-
         logger.debug("send_verify_email: message.send()")
         message.send()
 
-        key = KEY_AUTH_SEND.format(to_email)
-        logger.debug("key: %s", key)
-        try:
-            cache.incr(key)
-        except ValueError:
-            cache.set(key, 1, 600)
-        else:
-            cache.touch(key, 600)
+        incr_key(KEY_SEND_EMAIL.format(to_email), 600)
+        incr_key(KEY_SEND_IP.format(ip), 3600)
     except Exception as error:
         logger.warning("send_verify_email: error: %s", error)
+
+
+def incr_key(key, ttl):
+    try:
+        cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, ttl)
+    else:
+        cache.touch(key, ttl)
+
+
+def generate_qr_code_bytes(data: str) -> bytes:
+    qr = segno.make(data)
+    buffer = io.BytesIO()
+    qr.save(buffer, kind="png")
+    return buffer.getvalue()
+
+
+def lookup_ip(ip_address) -> dict:
+    key = f"lookup.{ip_address}"
+    if result := cache.get(key):
+        logger.debug("cache.get: %s", result)
+        return result
+    net = Net(ip_address)
+    obj = IPASN(net)
+    result = obj.lookup()
+    logger.debug("obj.lookup: %s", result)
+    cache.set(key, result, 1210000 if result else 600)
+    return result

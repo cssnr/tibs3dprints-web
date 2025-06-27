@@ -22,12 +22,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Point, Poll, Vote
-from home.tasks import send_verify_email
-from project.constants import KEY_AUTH_CODE, KEY_AUTH_SEND, KEY_AUTH_STATE
+from home.tasks import lookup_ip, send_verify_email
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_SEND_EMAIL
+from project.helpers import get_ipaddress
 
 
 logger = logging.getLogger("app")
-auth_code_ttl = 3600
 
 # signer = TimestampSigner()
 
@@ -60,7 +60,15 @@ def api_view(request):
     """
     logger.debug("api_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("-" * 20)
-    return HttpResponse("Online.")
+    logger.debug("META:\n%s", request.META)
+    logger.debug("-" * 20)
+    logger.debug("headers:\n%s", request.headers)
+    logger.debug("-" * 20)
+    ip = get_ipaddress(request)
+    logger.info('ip: "%s"', ip)
+    whois = lookup_ip(ip)
+    logger.debug("whois: %s", whois)
+    return HttpResponse(f"Connected from: {ip} ({whois.get("asn_country_code")}) {whois.get("asn_description")}")
 
 
 @csrf_exempt
@@ -394,12 +402,12 @@ def auth_login_view(request):
         logger.debug("data.email: %s", data["email"])
         logger.debug("data.code: %s", data["code"])
         logger.debug("data.state: %s", data["state"])
-        logger.debug("-" * 20)
         email = data["email"]
         code = cache.get(KEY_AUTH_CODE.format(email))
         state = cache.get(KEY_AUTH_STATE.format(email))
-        logger.debug("code: %s", code)
-        logger.debug("state: %s", state)
+        logger.debug("cache.code: %s", code)
+        logger.debug("cache.state: %s", state)
+        logger.debug("-" * 20)
 
         if str(code) != str(data["code"]):
             logger.debug('code: "%s" != "%s"', code, data["code"])
@@ -413,7 +421,7 @@ def auth_login_view(request):
         logger.debug("user: %s", user)
         logger.debug("created: %s", created)
         if not user:
-            return JsonResponse({"message": "Error Creating User"}, status=401)
+            return JsonResponse({"message": "Error Creating User"}, status=500)
 
         fields_to_update = ["last_login"]
         if not user.verified:
@@ -422,7 +430,9 @@ def auth_login_view(request):
         logger.debug("fields_to_update: %s", fields_to_update)
         user.last_login = now()
         user.save(update_fields=fields_to_update)
-        result = cache.delete_many([KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email)])
+        result = cache.delete_many(
+            [KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email), KEY_SEND_EMAIL.format(email)]
+        )
         logger.debug("cache.delete_many: %s", result)
         return JsonResponse(serialize_user(user), status=200)
     except Exception as error:
@@ -460,23 +470,24 @@ def auth_start_view(request):
         # logger.debug("created: %s", created)
         # logger.debug("verified: %s", user.verified)
 
-        quota = cache.get_or_set(KEY_AUTH_SEND.format(email), 0, 600)
+        quota = cache.get_or_set(KEY_SEND_EMAIL.format(email), 0, 600)
         logger.debug("quota: %s", quota)
         if quota >= 2:
             logger.warning("Quota Exceeded for: %s", email)
-            return JsonResponse({"message": "Quota Exceeded."}, status=400)
+            return JsonResponse({"message": "E-Mail Quota Exceeded."}, status=400)
 
         code = str(randbelow(9000) + 1000)
         logger.debug("code: %s", code)
-        cache.set(KEY_AUTH_CODE.format(email), code, auth_code_ttl)
-        cache.set(KEY_AUTH_STATE.format(email), data["state"], auth_code_ttl)
+        cache.set(KEY_AUTH_CODE.format(email), code, 3600)
+        cache.set(KEY_AUTH_STATE.format(email), state, 3600)
 
         # signature = get_signature(user_id=user.id, code=code)
         # logger.debug("signature: %s", signature)
         url = get_signed_url(code=code)
         logger.debug("url: %s", url)
-
-        send_verify_email.delay(email, code, url)
+        ip = get_ipaddress(request)
+        logger.debug("ip: %s", ip)
+        send_verify_email.delay(email, code, url, ip)
         return JsonResponse({"message": "E-Mail Queued"}, status=200)
     except Exception as error:
         logger.error(error)

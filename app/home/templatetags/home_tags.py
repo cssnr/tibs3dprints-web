@@ -37,8 +37,25 @@ def url_full_kwarg(path, key, arg):
     return settings.SITE_URL + reverse(path, kwargs={key: arg})
 
 
+@register.simple_tag(name="country_emoji")
+def country_emoji(country_code):
+    # returns the full_url for the reversed path with a kwarg
+    logger.debug("country_emoji: country_code: %s", country_code)
+    try:
+        return "".join(chr(ord(c) + 127397) for c in country_code.upper())
+    except Exception:
+        return country_code
+
+
 @register.simple_tag(name="sec_to_human")
 def sec_to_human(seconds):
+    # returns seconds to human-readable time
+    logger.debug("sec_to_human: seconds: %s", seconds)
+    try:
+        seconds = int(seconds)
+    except Exception:
+        return "Unknown"
+
     def fmt_int(value: int, string: str):
         s = "" if value == 1 else "s"
         return f"{value} {string}{s}"
