@@ -47,3 +47,4 @@ def get_ipaddress(request) -> Optional[str]:
             return result
         except Exception:
             continue  # nosec
+    return None
