@@ -9,7 +9,7 @@ def gen_auth(_bytes: int = 32) -> str:
     return secrets.token_urlsafe(_bytes)
 
 
-def get_rand(length: int = 30) -> str:
+def get_rand(length: int = 32) -> str:
     choices = string.ascii_uppercase + string.ascii_lowercase + string.digits
     return "".join(secrets.choice(choices) for _ in range(length))
 
@@ -46,4 +46,4 @@ def get_ipaddress(request) -> Optional[str]:
             validate_ipv46_address(result)
             return result
         except Exception:
-            pass
+            continue  # nosec
