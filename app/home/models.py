@@ -17,13 +17,13 @@ class AppUser(AbstractBaseUser):
     password = models.CharField(blank=True, max_length=255, editable=False)
     points = models.IntegerField(default=0)
 
-    # TikTok Fields
-    display_name = models.CharField(blank=True, max_length=255)
-    avatar_url = models.URLField(blank=True, max_length=510)
-    open_id = models.CharField(blank=True, max_length=255, editable=False)
-    access_token = models.CharField(blank=True, max_length=255, editable=False)
-    refresh_token = models.CharField(blank=True, max_length=255, editable=False)
-    expires_in = models.DateTimeField(null=True, editable=False)
+    # # TikTok Fields
+    # display_name = models.CharField(blank=True, max_length=255)
+    # avatar_url = models.URLField(blank=True, max_length=510)
+    # open_id = models.CharField(blank=True, max_length=255, editable=False)
+    # access_token = models.CharField(blank=True, max_length=255, editable=False)
+    # refresh_token = models.CharField(blank=True, max_length=255, editable=False)
+    # expires_in = models.DateTimeField(null=True, editable=False)
 
     # Meta Fields
     updated_at = models.DateTimeField(auto_now=True)
@@ -59,7 +59,7 @@ class BetaUser(models.Model):
 
 class Poll(models.Model):
     title = models.CharField(max_length=255, verbose_name="Title")
-    question = models.TextField(verbose_name="Question")
+    question = models.CharField(max_length=255, verbose_name="Question")
     start_at = models.DateTimeField(verbose_name="Start Date")
     end_at = models.DateTimeField(verbose_name="End Date")
     objects = PollManager()
@@ -110,7 +110,7 @@ class Choice(models.Model):
     class Meta:
         verbose_name = "Choice"
         verbose_name_plural = "Choices"
-        ordering = ["-created_at"]
+        ordering = ["-id"]
 
 
 class Vote(models.Model):
@@ -130,7 +130,7 @@ class Vote(models.Model):
         unique_together = ("user", "poll")
         verbose_name = "Vote"
         verbose_name_plural = "Votes"
-        ordering = ["-voted_at"]
+        ordering = ["-id"]
 
 
 class Point(models.Model):
@@ -148,4 +148,4 @@ class Point(models.Model):
     class Meta:
         verbose_name = "Point"
         verbose_name_plural = "Points"
-        ordering = ["-created_at"]
+        ordering = ["-id"]

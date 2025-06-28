@@ -1,13 +1,10 @@
 import json
 import logging
-from datetime import datetime, timedelta
 from functools import wraps
 from secrets import randbelow
 from typing import Union
 from urllib import parse
 
-import httpx
-from decouple import config
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -25,7 +22,6 @@ from home.models import AppUser, Choice, Point, Poll, Vote
 from home.tasks import lookup_ip, send_verify_email
 from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_SEND_EMAIL
 from project.helpers import get_ipaddress
-
 
 logger = logging.getLogger("app")
 
@@ -68,88 +64,88 @@ def api_view(request):
     logger.info('ip: "%s"', ip)
     whois = lookup_ip(ip)
     logger.debug("whois: %s", whois)
-    return HttpResponse(f"Connected from: {ip} ({whois.get("asn_country_code")}) {whois.get("asn_description")}")
+    return HttpResponse(f'Connected from: {ip} ({whois.get("asn_country_code")}) {whois.get("asn_description")}')
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def auth_view(request):
-    """
-    View  /api/auth/
-    """
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.debug("data: %s", data)
-        code = data["code"]
-        code_verifier = data["codeVerifier"]
-        if not code or not code_verifier:
-            return JsonResponse({"message": "Invalid Request."}, status=400)
-        response = get_access_token(code, code_verifier)
-        logger.debug("response: %s", response)
-        access_token = response.get("access_token")
-        logger.debug("access_token: %s", access_token)
-        if access_token:
-            profile = get_user_profile(access_token)
-            logger.debug("profile: %s", profile)
-            user_data = profile.get("data", {}).get("user", {})
-            logger.debug("user_data: %s", user_data)
-
-            user, created = AppUser.objects.get_or_create(open_id=response["open_id"])
-            logger.debug("user: %s", user)
-            logger.debug("created: %s", created)
-
-            user.access_token = access_token
-            user.open_id = response["open_id"]
-            user.refresh_token = response["refresh_token"]
-            user.expires_in = datetime.now() + timedelta(0, response["expires_in"])
-            user.display_name = user_data.get("display_name", "")
-            user.avatar_url = user_data.get("avatar_url", "")
-
-            user.save()
-            logger.debug("user: %s", user)
-            logger.debug("authorization: %s", user.authorization)
-            user_data["authorization"] = user.authorization
-            logger.debug("user_data: %s", user_data)
-            return JsonResponse(user_data)
-        else:
-            error_description = response.get("error_description", "Unknown")
-            return JsonResponse({"message": error_description}, status=401)
-    except Exception as error:
-        logger.error(error)
-        return JsonResponse({"message": str(error)}, status=500)
-
-
-def get_access_token(code: str, code_verifier: str) -> dict:
-    # Post OAuth code and Return access_token
-    url = "https://open.tiktokapis.com/v2/oauth/token/"
-    data = {
-        "client_key": config("TIKTOK_CLIENT_KEY"),
-        "client_secret": config("TIKTOK_CLIENT_SECRET"),
-        "redirect_uri": config("TIKTOK_REDIRECT_URI"),
-        "grant_type": "authorization_code",
-        "code_verifier": code_verifier,
-        "code": code,
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    r = httpx.post(url, data=data, headers=headers, timeout=10)
-    logger.debug("r: %s", r)
-    if not r.is_success:
-        logger.info("status_code: %s", r.status_code)
-        r.raise_for_status()
-    return r.json()
-
-
-def get_user_profile(access_token: str) -> dict:
-    # Get Profile for Authenticated User
-    url = "https://open.tiktokapis.com/v2/user/info/"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"fields": "open_id,union_id,avatar_url,display_name"}
-    r = httpx.get(url, headers=headers, params=params, timeout=10)
-    logger.info("r: %s", r)
-    if not r.is_success:
-        logger.info("status_code: %s", r.status_code)
-        r.raise_for_status()
-    return r.json()
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def auth_view(request):
+#     """
+#     View  /api/auth/
+#     """
+#     try:
+#         data = json.loads(request.body.decode("utf-8"))
+#         logger.debug("data: %s", data)
+#         code = data["code"]
+#         code_verifier = data["codeVerifier"]
+#         if not code or not code_verifier:
+#             return JsonResponse({"message": "Invalid Request."}, status=400)
+#         response = get_access_token(code, code_verifier)
+#         logger.debug("response: %s", response)
+#         access_token = response.get("access_token")
+#         logger.debug("access_token: %s", access_token)
+#         if access_token:
+#             profile = get_user_profile(access_token)
+#             logger.debug("profile: %s", profile)
+#             user_data = profile.get("data", {}).get("user", {})
+#             logger.debug("user_data: %s", user_data)
+#
+#             user, created = AppUser.objects.get_or_create(open_id=response["open_id"])
+#             logger.debug("user: %s", user)
+#             logger.debug("created: %s", created)
+#
+#             user.access_token = access_token
+#             user.open_id = response["open_id"]
+#             user.refresh_token = response["refresh_token"]
+#             user.expires_in = datetime.now() + timedelta(0, response["expires_in"])
+#             user.display_name = user_data.get("display_name", "")
+#             user.avatar_url = user_data.get("avatar_url", "")
+#
+#             user.save()
+#             logger.debug("user: %s", user)
+#             logger.debug("authorization: %s", user.authorization)
+#             user_data["authorization"] = user.authorization
+#             logger.debug("user_data: %s", user_data)
+#             return JsonResponse(user_data)
+#         else:
+#             error_description = response.get("error_description", "Unknown")
+#             return JsonResponse({"message": error_description}, status=401)
+#     except Exception as error:
+#         logger.error(error)
+#         return JsonResponse({"message": str(error)}, status=500)
+#
+#
+# def get_access_token(code: str, code_verifier: str) -> dict:
+#     # Post OAuth code and Return access_token
+#     url = "https://open.tiktokapis.com/v2/oauth/token/"
+#     data = {
+#         "client_key": config("TIKTOK_CLIENT_KEY"),
+#         "client_secret": config("TIKTOK_CLIENT_SECRET"),
+#         "redirect_uri": config("TIKTOK_REDIRECT_URI"),
+#         "grant_type": "authorization_code",
+#         "code_verifier": code_verifier,
+#         "code": code,
+#     }
+#     headers = {"Content-Type": "application/x-www-form-urlencoded"}
+#     r = httpx.post(url, data=data, headers=headers, timeout=10)
+#     logger.debug("r: %s", r)
+#     if not r.is_success:
+#         logger.info("status_code: %s", r.status_code)
+#         r.raise_for_status()
+#     return r.json()
+#
+#
+# def get_user_profile(access_token: str) -> dict:
+#     # Get Profile for Authenticated User
+#     url = "https://open.tiktokapis.com/v2/user/info/"
+#     headers = {"Authorization": f"Bearer {access_token}"}
+#     params = {"fields": "open_id,union_id,avatar_url,display_name"}
+#     r = httpx.get(url, headers=headers, params=params, timeout=10)
+#     logger.info("r: %s", r)
+#     if not r.is_success:
+#         logger.info("status_code: %s", r.status_code)
+#         r.raise_for_status()
+#     return r.json()
 
 
 @csrf_exempt

@@ -39,8 +39,6 @@ class AppUserAdmin(admin.ModelAdmin):
         "email",
         "verified",
         "name",
-        "display_name",
-        "avatar_url",
         "points",
         "last_login",
         "updated_at",
