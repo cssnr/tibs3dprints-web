@@ -23,6 +23,7 @@ from home.tasks import lookup_ip, send_verify_email
 from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_SEND_EMAIL
 from project.helpers import get_ipaddress
 
+
 logger = logging.getLogger("app")
 
 # signer = TimestampSigner()
