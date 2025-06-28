@@ -33,4 +33,8 @@
     If the above link or code does not work try visiting this link on your mobile phone:
     <a href="{{ url }}">{{ url }}</a>
   </p>
+  <p>
+    Request sent from {% country_emoji whois.asn_country_code %}
+    <b>{{ ip }}</b> {{ whois.asn_description|default:"Unknown" }}
+  </p>
 {% endblock %}

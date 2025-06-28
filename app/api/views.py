@@ -1,13 +1,10 @@
 import json
 import logging
-from datetime import datetime, timedelta
 from functools import wraps
 from secrets import randbelow
 from typing import Union
 from urllib import parse
 
-import httpx
-from decouple import config
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -22,12 +19,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from home.models import AppUser, Choice, Point, Poll, Vote
-from home.tasks import send_verify_email
-from project.constants import KEY_AUTH_CODE, KEY_AUTH_SEND, KEY_AUTH_STATE
+from home.tasks import lookup_ip, send_verify_email
+from project.constants import KEY_AUTH_CODE, KEY_AUTH_STATE, KEY_SEND_EMAIL
+from project.helpers import get_ipaddress
 
 
 logger = logging.getLogger("app")
-auth_code_ttl = 3600
 
 # signer = TimestampSigner()
 
@@ -60,88 +57,96 @@ def api_view(request):
     """
     logger.debug("api_view: %s - %s", request.method, request.META["PATH_INFO"])
     logger.debug("-" * 20)
-    return HttpResponse("Online.")
+    logger.debug("META:\n%s", request.META)
+    logger.debug("-" * 20)
+    logger.debug("headers:\n%s", request.headers)
+    logger.debug("-" * 20)
+    ip = get_ipaddress(request)
+    logger.info('ip: "%s"', ip)
+    whois = lookup_ip(ip)
+    logger.debug("whois: %s", whois)
+    return HttpResponse(f'Connected from: {ip} ({whois.get("asn_country_code")}) {whois.get("asn_description")}')
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def auth_view(request):
-    """
-    View  /api/auth/
-    """
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.debug("data: %s", data)
-        code = data["code"]
-        code_verifier = data["codeVerifier"]
-        if not code or not code_verifier:
-            return JsonResponse({"message": "Invalid Request."}, status=400)
-        response = get_access_token(code, code_verifier)
-        logger.debug("response: %s", response)
-        access_token = response.get("access_token")
-        logger.debug("access_token: %s", access_token)
-        if access_token:
-            profile = get_user_profile(access_token)
-            logger.debug("profile: %s", profile)
-            user_data = profile.get("data", {}).get("user", {})
-            logger.debug("user_data: %s", user_data)
-
-            user, created = AppUser.objects.get_or_create(open_id=response["open_id"])
-            logger.debug("user: %s", user)
-            logger.debug("created: %s", created)
-
-            user.access_token = access_token
-            user.open_id = response["open_id"]
-            user.refresh_token = response["refresh_token"]
-            user.expires_in = datetime.now() + timedelta(0, response["expires_in"])
-            user.display_name = user_data.get("display_name", "")
-            user.avatar_url = user_data.get("avatar_url", "")
-
-            user.save()
-            logger.debug("user: %s", user)
-            logger.debug("authorization: %s", user.authorization)
-            user_data["authorization"] = user.authorization
-            logger.debug("user_data: %s", user_data)
-            return JsonResponse(user_data)
-        else:
-            error_description = response.get("error_description", "Unknown")
-            return JsonResponse({"message": error_description}, status=401)
-    except Exception as error:
-        logger.error(error)
-        return JsonResponse({"message": str(error)}, status=500)
-
-
-def get_access_token(code: str, code_verifier: str) -> dict:
-    # Post OAuth code and Return access_token
-    url = "https://open.tiktokapis.com/v2/oauth/token/"
-    data = {
-        "client_key": config("TIKTOK_CLIENT_KEY"),
-        "client_secret": config("TIKTOK_CLIENT_SECRET"),
-        "redirect_uri": config("TIKTOK_REDIRECT_URI"),
-        "grant_type": "authorization_code",
-        "code_verifier": code_verifier,
-        "code": code,
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    r = httpx.post(url, data=data, headers=headers, timeout=10)
-    logger.debug("r: %s", r)
-    if not r.is_success:
-        logger.info("status_code: %s", r.status_code)
-        r.raise_for_status()
-    return r.json()
-
-
-def get_user_profile(access_token: str) -> dict:
-    # Get Profile for Authenticated User
-    url = "https://open.tiktokapis.com/v2/user/info/"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"fields": "open_id,union_id,avatar_url,display_name"}
-    r = httpx.get(url, headers=headers, params=params, timeout=10)
-    logger.info("r: %s", r)
-    if not r.is_success:
-        logger.info("status_code: %s", r.status_code)
-        r.raise_for_status()
-    return r.json()
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def auth_view(request):
+#     """
+#     View  /api/auth/
+#     """
+#     try:
+#         data = json.loads(request.body.decode("utf-8"))
+#         logger.debug("data: %s", data)
+#         code = data["code"]
+#         code_verifier = data["codeVerifier"]
+#         if not code or not code_verifier:
+#             return JsonResponse({"message": "Invalid Request."}, status=400)
+#         response = get_access_token(code, code_verifier)
+#         logger.debug("response: %s", response)
+#         access_token = response.get("access_token")
+#         logger.debug("access_token: %s", access_token)
+#         if access_token:
+#             profile = get_user_profile(access_token)
+#             logger.debug("profile: %s", profile)
+#             user_data = profile.get("data", {}).get("user", {})
+#             logger.debug("user_data: %s", user_data)
+#
+#             user, created = AppUser.objects.get_or_create(open_id=response["open_id"])
+#             logger.debug("user: %s", user)
+#             logger.debug("created: %s", created)
+#
+#             user.access_token = access_token
+#             user.open_id = response["open_id"]
+#             user.refresh_token = response["refresh_token"]
+#             user.expires_in = datetime.now() + timedelta(0, response["expires_in"])
+#             user.display_name = user_data.get("display_name", "")
+#             user.avatar_url = user_data.get("avatar_url", "")
+#
+#             user.save()
+#             logger.debug("user: %s", user)
+#             logger.debug("authorization: %s", user.authorization)
+#             user_data["authorization"] = user.authorization
+#             logger.debug("user_data: %s", user_data)
+#             return JsonResponse(user_data)
+#         else:
+#             error_description = response.get("error_description", "Unknown")
+#             return JsonResponse({"message": error_description}, status=401)
+#     except Exception as error:
+#         logger.error(error)
+#         return JsonResponse({"message": str(error)}, status=500)
+#
+#
+# def get_access_token(code: str, code_verifier: str) -> dict:
+#     # Post OAuth code and Return access_token
+#     url = "https://open.tiktokapis.com/v2/oauth/token/"
+#     data = {
+#         "client_key": config("TIKTOK_CLIENT_KEY"),
+#         "client_secret": config("TIKTOK_CLIENT_SECRET"),
+#         "redirect_uri": config("TIKTOK_REDIRECT_URI"),
+#         "grant_type": "authorization_code",
+#         "code_verifier": code_verifier,
+#         "code": code,
+#     }
+#     headers = {"Content-Type": "application/x-www-form-urlencoded"}
+#     r = httpx.post(url, data=data, headers=headers, timeout=10)
+#     logger.debug("r: %s", r)
+#     if not r.is_success:
+#         logger.info("status_code: %s", r.status_code)
+#         r.raise_for_status()
+#     return r.json()
+#
+#
+# def get_user_profile(access_token: str) -> dict:
+#     # Get Profile for Authenticated User
+#     url = "https://open.tiktokapis.com/v2/user/info/"
+#     headers = {"Authorization": f"Bearer {access_token}"}
+#     params = {"fields": "open_id,union_id,avatar_url,display_name"}
+#     r = httpx.get(url, headers=headers, params=params, timeout=10)
+#     logger.info("r: %s", r)
+#     if not r.is_success:
+#         logger.info("status_code: %s", r.status_code)
+#         r.raise_for_status()
+#     return r.json()
 
 
 @csrf_exempt
@@ -394,12 +399,12 @@ def auth_login_view(request):
         logger.debug("data.email: %s", data["email"])
         logger.debug("data.code: %s", data["code"])
         logger.debug("data.state: %s", data["state"])
-        logger.debug("-" * 20)
         email = data["email"]
         code = cache.get(KEY_AUTH_CODE.format(email))
         state = cache.get(KEY_AUTH_STATE.format(email))
-        logger.debug("code: %s", code)
-        logger.debug("state: %s", state)
+        logger.debug("cache.code: %s", code)
+        logger.debug("cache.state: %s", state)
+        logger.debug("-" * 20)
 
         if str(code) != str(data["code"]):
             logger.debug('code: "%s" != "%s"', code, data["code"])
@@ -413,7 +418,7 @@ def auth_login_view(request):
         logger.debug("user: %s", user)
         logger.debug("created: %s", created)
         if not user:
-            return JsonResponse({"message": "Error Creating User"}, status=401)
+            return JsonResponse({"message": "Error Creating User"}, status=500)
 
         fields_to_update = ["last_login"]
         if not user.verified:
@@ -422,7 +427,9 @@ def auth_login_view(request):
         logger.debug("fields_to_update: %s", fields_to_update)
         user.last_login = now()
         user.save(update_fields=fields_to_update)
-        result = cache.delete_many([KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email)])
+        result = cache.delete_many(
+            [KEY_AUTH_CODE.format(email), KEY_AUTH_STATE.format(email), KEY_SEND_EMAIL.format(email)]
+        )
         logger.debug("cache.delete_many: %s", result)
         return JsonResponse(serialize_user(user), status=200)
     except Exception as error:
@@ -460,23 +467,24 @@ def auth_start_view(request):
         # logger.debug("created: %s", created)
         # logger.debug("verified: %s", user.verified)
 
-        quota = cache.get_or_set(KEY_AUTH_SEND.format(email), 0, 600)
+        quota = cache.get_or_set(KEY_SEND_EMAIL.format(email), 0, 600)
         logger.debug("quota: %s", quota)
         if quota >= 2:
             logger.warning("Quota Exceeded for: %s", email)
-            return JsonResponse({"message": "Quota Exceeded."}, status=400)
+            return JsonResponse({"message": "E-Mail Quota Exceeded."}, status=400)
 
         code = str(randbelow(9000) + 1000)
         logger.debug("code: %s", code)
-        cache.set(KEY_AUTH_CODE.format(email), code, auth_code_ttl)
-        cache.set(KEY_AUTH_STATE.format(email), data["state"], auth_code_ttl)
+        cache.set(KEY_AUTH_CODE.format(email), code, 3600)
+        cache.set(KEY_AUTH_STATE.format(email), state, 3600)
 
         # signature = get_signature(user_id=user.id, code=code)
         # logger.debug("signature: %s", signature)
         url = get_signed_url(code=code)
         logger.debug("url: %s", url)
-
-        send_verify_email.delay(email, code, url)
+        ip = get_ipaddress(request)
+        logger.debug("ip: %s", ip)
+        send_verify_email.delay(email, code, url, ip)
         return JsonResponse({"message": "E-Mail Queued"}, status=200)
     except Exception as error:
         logger.error(error)

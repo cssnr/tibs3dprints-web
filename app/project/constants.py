@@ -1,3 +1,6 @@
+# Cache Keys
+
 KEY_AUTH_CODE = "auth.{0}.code"
 KEY_AUTH_STATE = "auth.{0}.state"
-KEY_AUTH_SEND = "auth.{0}.send"
+KEY_SEND_EMAIL = "send.email.{0}"
+KEY_SEND_IP = "send.ip.{0}"
