@@ -9,7 +9,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 32M
+          memory: 50M
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=traefik-public"
@@ -95,6 +95,7 @@ services:
       DISCORD_WEBHOOK: ${DISCORD_WEBHOOK}
       DISCORD_INVITE: ${DISCORD_INVITE}
       WEBSITE_URL: ${WEBSITE_URL}
+      DEEP_URL: ${DEEP_URL}
       TIKTOK_SITE_VERIFICATION: ${TIKTOK_SITE_VERIFICATION}
       TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY}
       TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
